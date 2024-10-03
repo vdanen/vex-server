@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}{{ vex.cve }}{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+{% if vex.release_date %}<p>Public on {{ vex.release_date }}</p>{% endif %}
+
+<p>{% if vex.global_impact %}{{ vex.global_impact }}{% else %}No{% endif %} Impact</p>
+<p><a href="https://access.redhat.com/security/updates/classification/">What does this mean?</a></p>
+
+<p>{% if vex.global_cvss %}<b>{{ vex.global_cvss['baseScore'] }}</b>{% else %}N/A{% endif %} | <a href="#cvss-breakdown">CVSS v3 Score Breakdown</a></p>
+
+<h2>Description</h2>
+<p>{{ vex.notes['description'] }}</p>
+{% endblock %}
