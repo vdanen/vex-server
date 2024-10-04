@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 import os
-from vex import Vex
+from vex import Vex, VexPackages
+
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -37,6 +38,8 @@ def create_app(test_config=None):
             return render_template('page_not_found.html'), 404
 
         vex = Vex(vexfile)
-        return render_template('cve.html', vex=vex)
+        packages = VexPackages(vex.raw)
+
+        return render_template('cve.html', vex=vex, packages=packages)
 
     return app
