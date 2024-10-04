@@ -1,6 +1,24 @@
 from flask import Flask, render_template, request, redirect, url_for
 import os
-from vex import Vex, VexPackages
+import requests
+from vex import Vex, VexPackages, NVD
+
+def get_from_nvd(cve):
+    response = requests.get(f'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve}')
+    nvd_cve  = response.json()
+    print(nvd_cve)
+    if nvd_cve['vulnerabilities'][0]['cve']['id'] == cve:
+        # we got the right result
+        if 'cvssMetricV31' in nvd_cve['vulnerabilities'][0]['cve']['metrics']:
+            nvd = NVD(nvd_cve['vulnerabilities'][0]['cve']['metrics']['cvssMetricV31'][0]['cvssData'])
+        elif 'cvssMetricV30' in nvd_cve['vulnerabilities'][0]['cve']['metrics']:
+            nvd = NVD(nvd_cve['vulnerabilities'][0]['cve']['metrics']['cvssMetricV30'][0]['cvssData'])
+        elif 'cvssMetricV2' in nvd_cve['vulnerabilities'][0]['cve']['metrics']:
+            nvd = NVD(nvd_cve['vulnerabilities'][0]['cve']['metrics']['cvssMetricV2'][0]['cvssData'])
+        else:
+            nvd = NVD(None)
+
+    return nvd
 
 
 def create_app(test_config=None):
@@ -35,11 +53,13 @@ def create_app(test_config=None):
         year    = cve[4:8]
         vexfile = f'{vexdir}/{year}/{cve}.json'
         if not os.path.exists(vexfile):
-            return render_template('page_not_found.html'), 404
+            return render_template('cve_not_found.html'), 404
 
-        vex = Vex(vexfile)
+        vex      = Vex(vexfile)
         packages = VexPackages(vex.raw)
+        nvd      = get_from_nvd(vex.cve)
+        print(nvd)
 
-        return render_template('cve.html', vex=vex, packages=packages)
+        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd)
 
     return app
