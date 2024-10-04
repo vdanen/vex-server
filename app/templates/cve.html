@@ -8,16 +8,15 @@
 <p>Public on {{ vex.release_date }}<br />
 Updated: {{ vex.updated }}</p>
 
-<p>{% if vex.global_impact %}{{ vex.global_impact }}{% else %}No{% endif %} Impact</p>
-<p><a href="https://access.redhat.com/security/updates/classification/">What does this mean?</a></p>
+<h2>{% if vex.global_impact %}<b>{{ vex.global_impact }}</b>{% else %}No{% endif %} Impact <span style="font-size:0.5em">| <a href="https://access.redhat.com/security/updates/classification/">What does this mean?</a></span></h2>
 
-<p>{% if vex.global_cvss %}<b>{{ vex.global_cvss['baseScore'] }}</b>{% else %}N/A{% endif %} | <a href="#cvss-breakdown">CVSS v3 Score Breakdown</a></p>
+<h2>{% if vex.global_cvss %}<b>{{ vex.global_cvss['baseScore'] }}</b>{% else %}N/A{% endif %} <span style="font-size:0.7em">| <a href="#cvss-breakdown">CVSS v3 Score Breakdown</a></span></h2>
 
 <table class="table">
   <tr style="vertical-align:top">
     <td>
       <h2>Description</h2>
-      <p>{{ vex.notes['description']['Vulnerability description'] }}</p>
+      <p>{% autoescape false %}{{ vex.notes['description']['Vulnerability description']|markdown }}{% endautoescape %}</p>
 
       <h2>Additional Information</h2>
       <ul>
@@ -37,16 +36,20 @@ Updated: {{ vex.updated }}</p>
 
 {% if vex.statement %}
 <h2 id="statement">Statement</h2>
-<p>{{ vex.statement }}</p>
+<p>{% autoescape false %}{{ x.statement|markdown }}{% endautoescape %}</p>
 {% endif %}
 
 {% if packages.mitigation %}
 <h2 id="mitigations">Mitigations</h2>
 
-{% for x in packages.mitigation %}<p>{{ x }}</p>{% endfor %}
+{% for x in packages.mitigation %}<p>{% autoescape false %}{{ x.details|markdown }}{% endautoescape %}</p>{% endfor %}
 {% endif %}
 
 <h2 id="cvss">CVSS {{ vex.cvss_type }} Score</h2>
+<div class="alert alert-warning">
+  <span class="pficon pficon-info"></span>
+  <strong>Important note.</strong> CVSS scores for open source components depend on vendor-specific factors (e.g. version or build chain). Therefore, Red Hat's score and impact rating can be different from NVD and other vendors. Red Hat remains the authoritative <a href="https://www.cve.org/ProgramOrganization/CNAs">CVE Naming Authority (CNA)</a> source for its products and services (see <a href="https://access.redhat.com/security/updates/classification#cvss">Red Hat classifications</a>).
+</div>
 <table class="table table-bordered table-hover">
   <thead>
   <tr><th> </th><th>Red Hat</th><th>National Vulnerability Database</th></tr>
@@ -85,7 +88,7 @@ Updated: {{ vex.updated }}</p>
   </thead>
   <tbody>
 {% for x in packages.fixes %}
-  <tr><td>{{ x.product }}</td><td>{{ ', '.join(x.components) }}</td><td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td><td>NOT YET</td></tr>
+  <tr><td>{{ x.product }}</td><td><ul>{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td><td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td><td>NOT YET</td></tr>
 {% endfor %}
   </tbody>
 </table>
@@ -168,7 +171,7 @@ Updated: {{ vex.updated }}</p>
         <ul>
           <li> Upgrade to a supported product version that includes a fix for this vulnerability (recommended).</li>
           <li> Apply a mitigation (if one exists).</li>
-          <li>Open a <a href="https://access.redhat.com/support/cases/#/new">support case</a> to request a prioritization of releasing a fix for this vulnerability.</li>
+          <li> Open a <a href="https://access.redhat.com/support/cases/#/new">support case</a> to request a prioritization of releasing a fix for this vulnerability.</li>
         </ul>
       </div>
     </div>
@@ -183,7 +186,13 @@ Updated: {{ vex.updated }}</p>
     </div>
     <div id="collapseFour" class="panel-collapse collapse">
       <div class="panel-body">
-        TODO
+        A deferred status means that a fix for an affected product version is not guaranteed due to higher-priority development work.<br /><br />
+        Available options depend mostly on the <a href="https://access.redhat.com/security/updates/classification/">Impact</a> of the vulnerability and the current <a href="https://access.redhat.com/product-life-cycles/update_policies">Life Cycle</a> phase of your product.  Overall, you have the following options:<br />
+        <ul>
+          <li> Apply a mitigation (if one exists).</li>
+          <li> Open a <a href="https://access.redhat.com/support/cases/#/new">support case</a> to request a prioritization of releasing a fix for this vulnerability.</li>
+          <li> Red Hat Engineering focuses on addressing high-priority issues based on their complexity or limited lifecycle support.  Therefore, lower-priority issues will not receive immediate fixes.</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -197,7 +206,7 @@ Updated: {{ vex.updated }}</p>
     </div>
     <div id="collapseFive" class="panel-collapse collapse">
       <div class="panel-body">
-        TODO
+        A mitigation is an action that can be taken to reduce the impact of a security vulnerability, without deploying any fixes.
       </div>
     </div>
   </div>
@@ -211,7 +220,7 @@ Updated: {{ vex.updated }}</p>
     </div>
     <div id="collapseSix" class="panel-collapse collapse">
       <div class="panel-body">
-        TODO
+        The listed products were found to include one or more of the components that this vulnerability affects.  These products underwent a thorough evaluation to determine their affectedness by this vulnerability.  Note that layered products (such as container-based offerings) that consume affected components from any of the products listed in this table may be affected and are not represented.
       </div>
     </div>
   </div>
@@ -225,7 +234,7 @@ Updated: {{ vex.updated }}</p>
     </div>
     <div id="collapseSeven" class="panel-collapse collapse">
       <div class="panel-body">
-        TODO
+        In order to maintain code stability and compatibility, Red Hat usually does not rebase packages to entirely new versions.  Instead, we <a href="https://access.redhat.com/security/updates/backporting">backport</a> fixes and new features to an older version of the package we distribute.  This can result in some security scanners that only consider the package version to report the package as vulnerable.  To avoid this, we suggest that you use an approved vulnerability scanner from our <a href="https://connect.redhat.com/en/partner-with-us/red-hat-vulnerability-scanner-certification">Red Hat Vulnerability Scanner Certification</a> program.
       </div>
     </div>
   </div>
@@ -239,15 +248,17 @@ Updated: {{ vex.updated }}</p>
     </div>
     <div id="collapseEight" class="panel-collapse collapse">
       <div class="panel-body">
-        TODO
+        When a product is listed as "Out of Support Scope", it means a vulnerability with the impact level assigned to this CVE is no longer covered by its current <a href="https://access.redhat.com/product-life-cycles/update_policies">support lifecycle phase</a>.  The product has been identified to contain the impacted component, but analysis to determine whether it is affected or not by this vulnerability was not performed.  The product should be assumed to be affected.  Customers are advised to apply any mitigation options documented on this page, consider removing or disabling the impacted component, or upgrade to a supported version of the product that has an update available.
       </div>
     </div>
   </div>
 </div>
 
+<h3><b>Not sure what something means?</b> Check out our <a href="https://access.redhat.com/security/glossary">Security Glossary</a>.</h3>
+
 <p>This page is generated automatically and has not been checked for errors or omissions.<br />
 For clarification or corrections please contact <a href="https://access.redhat.com/security/team/contact/">Red Hat Product Security</a>.</p>
 
 <p>Last Modified: {{ vex.updated }}<br />
-  CVE description copyright &copy; YYYY by XXXX</p>
+  <a href="https://security.access.redhat.com/data/csaf/v2/vex/{{ year }}/{{ vex.cve.lower() }}.json">Original VEX document</a> {{ vex.distribution }}</p>
 {% endblock %}
