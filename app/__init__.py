@@ -1,7 +1,13 @@
+localdev = False
+
 from flask import Flask, render_template, request, redirect, url_for
 from jinjaMarkdown.markdownExtension import markdownExtension
 import os
 import requests
+if localdev:
+    # for local development on pre-release vex-reader
+    import sys
+    sys.path.append('/Users/redhat/git/vex-reader')
 from vex import Vex, VexPackages, NVD
 
 # whether or not to load VEX files locally or remotely
@@ -61,11 +67,24 @@ def create_app(test_config=None):
             if not os.path.exists(vexfile):
                 return render_template('cve_not_found.html'), 404
         else:
+            # grab from remote and handle any errors here rather than in vex-reader
             vexfile = f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve.lower()}.json'
+            response = requests.get(vexfile)
+            if response.status_code == 200:
+                with open(f'{cve}.json', 'w') as f:
+                    f.write(response.text)
+            elif response.status_code == 404:
+                return render_template('cve_not_found.html'), 404
+            else:
+                return render_template('page_not_found.html'), 404
+            vexfile = f'{cve}.json'
 
         vex      = Vex(vexfile)
         packages = VexPackages(vex.raw)
         nvd      = get_from_nvd(vex.cve)
+
+        if not localvex:
+            os.remove(vexfile)
 
         return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, year=year)
 
