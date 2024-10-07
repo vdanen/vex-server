@@ -5,6 +5,20 @@
 {% endblock %}
 
 {% block content %}
+<p>{{ vex.exploits|length }}</p>
+{% if vex.exploits|length > 0 %}
+{% for ex in vex.exploits %}
+<div class="alert alert-danger">
+  <span class="pficon pficon-info"></span>
+  {% if ex['source'] %}
+  <strong>Known exploit reported {{ ex['date'] }} by <a href="{{ ex['url'] }}{% if ex['source'] == 'CISA' %}?search_api_fulltext={{ vex.cve }}&field_date_added_wrapper=all&field_cve=&sort_by=field_date_added&items_per_page=20&url={% endif %}">{{ ex['source'] }}</a></strong>
+  {% else %}
+  <strong>Known exploit reported {{ ex['date'] }} {{ ex['details'] }}</a></strong>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
 <p>Public on {{ vex.release_date }}<br />
 Updated: {{ vex.updated }}</p>
 
