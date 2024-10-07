@@ -19,7 +19,7 @@ requests==2.32.3
 rich==13.9.1
 setuptools==75.1.0
 urllib3==2.2.3
-vex-reader==0.5
+vex-reader==0.6
 Werkzeug==3.0.4
 zope.event==5.0
 zope.interface==7.0.3
