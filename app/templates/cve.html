@@ -5,7 +5,6 @@
 {% endblock %}
 
 {% block content %}
-<p>{{ vex.exploits|length }}</p>
 {% if vex.exploits|length > 0 %}
 {% for ex in vex.exploits %}
 <div class="alert alert-danger">
