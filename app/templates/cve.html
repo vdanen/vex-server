@@ -45,6 +45,7 @@ Updated: {{ vex.updated }}</p>
 {% for x in packages.mitigation %}<p>{% autoescape false %}{{ x.details|markdown }}{% endautoescape %}</p>{% endfor %}
 {% endif %}
 
+{% if vex.global_cvss %}
 <h2 id="cvss">CVSS {{ vex.cvss_type }} Score</h2>
 <div class="alert alert-warning">
   <span class="pficon pficon-info"></span>
@@ -79,7 +80,13 @@ Updated: {{ vex.updated }}</p>
   {% endif %}
   </tbody>
 </table>
-
+{% else %}
+<h2 id="cvss">CVSS Score</h2>
+<div class="alert alert-warning">
+  <span class="pficon pficon-info"></span>
+  <strong>CVSS metrics unavailable</strong>
+</div>
+{% endif %}
 
 <h2 id="affected">Affected Packages and Issued Red Hat Security Errata</h2>
 <table class="table table-bordered table-hover">
