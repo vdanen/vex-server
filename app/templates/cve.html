@@ -58,7 +58,6 @@ Updated: {{ vex.updated }}</p>
 {% for x in packages.mitigation %}<p>{% autoescape false %}{{ x.details|markdown }}{% endautoescape %}</p>{% endfor %}
 {% endif %}
 
-{% if vex.global_cvss %}
 <h2 id="cvss">CVSS {{ vex.cvss_type }} Score</h2>
 <div class="alert alert-warning">
   <span class="pficon pficon-info"></span>
@@ -66,40 +65,28 @@ Updated: {{ vex.updated }}</p>
 </div>
 <table class="table table-bordered table-hover">
   <thead>
-  <tr><th> </th><th>Red Hat</th><th>National Vulnerability Database</th></tr>
+  <tr><th> </th><th>Red Hat</th><th>National Vulnerability Database</th><th>CVE.org ADP</th></tr>
   </thead>
   <tbody>
-  <tr><td>Base Score</td><td>{{ vex.global_cvss['baseScore'] }}</td><td>{{ nvd.baseScore }}</td></tr>
-  <tr><td>Base Vector</td><td>{{ vex.global_cvss['vectorString'] }}</td><td>{{ nvd.vectorString }}</td></tr>
-  {% if vex.cvss_type == 'v3' %}
-  {% if 'attackVector' in vex.global_cvss %}
-  <tr><td>Attack Vector</td><td>{{ vex.global_cvss['attackVector'].capitalize() }}</td><td>{{ nvd.attackVector }}</td></tr>
-  <tr><td>Attack Complexity</td><td>{{ vex.global_cvss['attackComplexity'].capitalize() }}</td><td>{{ nvd.attackComplexity }}</td></tr>
-  <tr><td>Privileges Required</td><td>{{ vex.global_cvss['privilegesRequired'].capitalize() }}</td><td>{{ nvd.privilegesRequired }}</td></tr>
-  <tr><td>User Interaction</td><td>{{ vex.global_cvss['userInteraction'].capitalize() }}</td><td>{{ nvd.userInteraction }}</td></tr>
-  <tr><td>Scope</td><td>{{ vex.global_cvss['scope'].capitalize() }}</td><td>{{ nvd.scope }}</td></tr>
+  <tr><td>Base Score</td><td>{{ vex.global_cvss['baseScore'] }}</td><td>{{ nvd.baseScore }}</td><td>{{ cve.baseScore }}</td></tr>
+  <tr><td>Base Vector</td><td>{{ vex.global_cvss['vectorString'] }}</td><td>{{ nvd.vectorString }}</td><td>{{ cve.vectorString }}</td></tr>
+  {% if (cvssVersion == '3.0' or cvssVersion == '3.1') %}
+  <tr><td>Attack Vector</td><td>{{ vex.global_cvss['attackVector'].capitalize() }}</td><td>{{ nvd.attackVector }}</td><td>{{ cve.attackVector }}</td></tr>
+  <tr><td>Attack Complexity</td><td>{{ vex.global_cvss['attackComplexity'].capitalize() }}</td><td>{{ nvd.attackComplexity }}</td><td>{{ cve.attackComplexity }}</td></tr>
+  <tr><td>Privileges Required</td><td>{{ vex.global_cvss['privilegesRequired'].capitalize() }}</td><td>{{ nvd.privilegesRequired }}</td><td>{{ cve.privilegesRequired }}</td></tr>
+  <tr><td>User Interaction</td><td>{{ vex.global_cvss['userInteraction'].capitalize() }}</td><td>{{ nvd.userInteraction }}</td><td>{{ cve.userInteraction }}</td></tr>
+  <tr><td>Scope</td><td>{{ vex.global_cvss['scope'].capitalize() }}</td><td>{{ nvd.scope }}</td><td>{{ cve.scope }}</td></tr>
+  {% elif cvssVersion == '2.0' %}
+  <tr><td>Access Vector</td><td>{{ vex.global_cvss['accessVector'].capitalize() }}</td><td>{{ nvd.accessVector }}</td><td>{{ cve.accessVector }}</td></tr>
+  <tr><td>Access Complexity</td><td>{{ vex.global_cvss['accessComplexity'].capitalize() }}</td><td>{{ nvd.accessComplexity }}</td><td>{{ cve.accessComplexity }}</td></tr>
+  <tr><td>Authentication</td><td>{{ vex.global_cvss['authentication'].capitalize() }}</td><td>{{ nvd.authentication }}</td><td>{{ cve.authentication }}</td></tr>
   {% endif %}
-  {% elif vex.cvss_type == 'v2' %}
-  {% if 'accessVector' in vex.global_cvss %}
-  <tr><td>Access Vector</td><td>{{ vex.global_cvss['accessVector'].capitalize() }}</td><td>{{ nvd.accessVector }}</td></tr>
-  <tr><td>Access Complexity</td><td>{{ vex.global_cvss['accessComplexity'].capitalize() }}</td><td>{{ nvd.accessComplexity }}</td></tr>
-  <tr><td>Authentication</td><td>{{ vex.global_cvss['authentication'].capitalize() }}</td><td>{{ nvd.authentication }}</td></tr>
-  {% endif %}
-  {% endif %}
-  {% if 'confidentialityImpact' in vex.global_cvss %}
-  <tr><td>Confidentiality Impact</td><td>{{ vex.global_cvss['confidentialityImpact'].capitalize() }}</td><td>{{ nvd.confidentialityImpact }}</td></tr>
-  <tr><td>Integrity Impact</td><td>{{ vex.global_cvss['integrityImpact'].capitalize() }}</td><td>{{ nvd.integrityImpact }}</td></tr>
-  <tr><td>Availability Impact</td><td>{{ vex.global_cvss['availabilityImpact'].capitalize() }}</td><td>{{ nvd.availabilityImpact }}</td></tr>
-  {% endif %}
+  <tr><td>Confidentiality Impact</td><td>{{ vex.global_cvss['confidentialityImpact'].capitalize() }}</td><td>{{ nvd.confidentialityImpact }}</td><td>{{ cve.confidentialityImpact }}</td></tr>
+  <tr><td>Integrity Impact</td><td>{{ vex.global_cvss['integrityImpact'].capitalize() }}</td><td>{{ nvd.integrityImpact }}</td><td>{{ cve.integrityImpact }}</td></tr>
+  <tr><td>Availability Impact</td><td>{{ vex.global_cvss['availabilityImpact'].capitalize() }}</td><td>{{ nvd.availabilityImpact }}</td><td>{{ cve.availabilityImpact }}</td></tr>
   </tbody>
 </table>
-{% else %}
-<h2 id="cvss">CVSS Score</h2>
-<div class="alert alert-warning">
-  <span class="pficon pficon-info"></span>
-  <strong>CVSS metrics unavailable</strong>
-</div>
-{% endif %}
+
 
 <h2 id="affected">Affected Packages and Issued Red Hat Security Errata</h2>
 <table class="table table-bordered table-hover">

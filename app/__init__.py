@@ -1,4 +1,4 @@
-localdev = False
+localdev = True
 
 from flask import Flask, render_template, request, redirect, url_for
 from jinjaMarkdown.markdownExtension import markdownExtension
@@ -8,7 +8,7 @@ if localdev:
     # for local development on pre-release vex-reader
     import sys
     sys.path.append('/Users/redhat/git/vex-reader')
-from vex import Vex, VexPackages, NVD
+from vex import Vex, VexPackages, NVD, CVE
 
 # whether or not to load VEX files locally or remotely
 localvex = False
@@ -28,6 +28,18 @@ def get_from_nvd(cve):
             nvd = NVD(None)
 
     return nvd
+
+
+def get_from_cve(cve):
+    response = requests.get(f'https://cveawg.mitre.org/api/cve/{cve}')
+    cve_cve  = response.json()
+    if cve_cve['cveMetadata']['cveId'] == cve:
+        # we got the right result
+        cve = CVE(cve_cve)
+    else:
+        cve = CVE(None)
+
+    return cve
 
 
 def create_app(test_config=None):
@@ -82,10 +94,20 @@ def create_app(test_config=None):
         vex      = Vex(vexfile)
         packages = VexPackages(vex.raw)
         nvd      = get_from_nvd(vex.cve)
+        cve      = get_from_cve(vex.cve)
+
+        # what CVSS metrics do we display?  Does our VEX provide any?
+        print(vex.global_cvss)
+        if vex.global_cvss['version'] is not None:
+            cvssVersion = vex.global_cvss['version']
+        elif nvd.version is not None:
+            cvssVersion = nvd.version
+        elif cve.version is not None:
+            cvssVersion = cve.version
 
         if not localvex:
             os.remove(vexfile)
 
-        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, year=year)
+        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, cve=cve, year=year, cvssVersion=cvssVersion)
 
     return app
