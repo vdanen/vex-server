@@ -87,7 +87,7 @@ Updated: {{ vex.updated }}</p>
   </tbody>
 </table>
 
-
+{% if packages.fixes %}
 <h2 id="affected">Affected Packages and Issued Red Hat Security Errata</h2>
 <table class="table table-bordered table-hover">
   <thead>
@@ -99,6 +99,7 @@ Updated: {{ vex.updated }}</p>
 {% endfor %}
   </tbody>
 </table>
+{% endif %}
 
 {% if packages.not_affected %}
 <h2 id="unaffected">Unaffected Packages</h2>
