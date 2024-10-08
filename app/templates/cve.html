@@ -23,7 +23,7 @@ Updated: {{ vex.updated }}</p>
 
 <h2>{% if vex.global_impact %}<b>{{ vex.global_impact }}</b>{% else %}No{% endif %} Impact <span style="font-size:0.5em">| <a href="https://access.redhat.com/security/updates/classification/">What does this mean?</a></span></h2>
 
-<h2>{% if vex.global_cvss %}<b>{{ vex.global_cvss['baseScore'] }}</b>{% else %}N/A{% endif %} <span style="font-size:0.7em">| <a href="#cvss-breakdown">CVSS v3 Score Breakdown</a></span></h2>
+<h2>{% if vex.global_cvss %}<b>{{ vex.global_cvss['baseScore'] }}</b>{% else %}N/A{% endif %} <span style="font-size:0.7em">| <a href="#cvss-breakdown">CVSS v{{ cvssVersion }} Score Breakdown</a></span></h2>
 
 <table class="table">
   <tr style="vertical-align:top">
@@ -58,7 +58,7 @@ Updated: {{ vex.updated }}</p>
 {% for x in packages.mitigation %}<p>{% autoescape false %}{{ x.details|markdown }}{% endautoescape %}</p>{% endfor %}
 {% endif %}
 
-<h2 id="cvss">CVSS {{ vex.cvss_type }} Score</h2>
+<h2 id="cvss">CVSS {{ cvssVersion }} Score</h2>
 <div class="alert alert-warning">
   <span class="pficon pficon-info"></span>
   <strong>Important note.</strong> CVSS scores for open source components depend on vendor-specific factors (e.g. version or build chain). Therefore, Red Hat's score and impact rating can be different from NVD and other vendors. Red Hat remains the authoritative <a href="https://www.cve.org/ProgramOrganization/CNAs">CVE Naming Authority (CNA)</a> source for its products and services (see <a href="https://access.redhat.com/security/updates/classification#cvss">Red Hat classifications</a>).

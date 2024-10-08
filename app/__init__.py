@@ -18,14 +18,9 @@ def get_from_nvd(cve):
     nvd_cve  = response.json()
     if nvd_cve['vulnerabilities'][0]['cve']['id'] == cve:
         # we got the right result
-        if 'cvssMetricV31' in nvd_cve['vulnerabilities'][0]['cve']['metrics']:
-            nvd = NVD(nvd_cve['vulnerabilities'][0]['cve']['metrics']['cvssMetricV31'][0]['cvssData'])
-        elif 'cvssMetricV30' in nvd_cve['vulnerabilities'][0]['cve']['metrics']:
-            nvd = NVD(nvd_cve['vulnerabilities'][0]['cve']['metrics']['cvssMetricV30'][0]['cvssData'])
-        elif 'cvssMetricV2' in nvd_cve['vulnerabilities'][0]['cve']['metrics']:
-            nvd = NVD(nvd_cve['vulnerabilities'][0]['cve']['metrics']['cvssMetricV2'][0]['cvssData'])
-        else:
-            nvd = NVD(None)
+        nvd = NVD(nvd_cve)
+    else:
+        nvd = NVD(None)
 
     return nvd
 
@@ -97,13 +92,29 @@ def create_app(test_config=None):
         cve      = get_from_cve(vex.cve)
 
         # what CVSS metrics do we display?  Does our VEX provide any?
-        print(vex.global_cvss)
+        cvssVersion = 0
+
         if vex.global_cvss['version'] is not None:
+            # this is our default
             cvssVersion = vex.global_cvss['version']
-        elif nvd.version is not None:
-            cvssVersion = nvd.version
-        elif cve.version is not None:
-            cvssVersion = cve.version
+
+        if cvssVersion == 0:
+            if nvd.cvss31.version is not None:
+                cvssVersion = '3.1'
+            elif cve.cvss31.version is not None:
+                cvssVersion = '3.1'
+
+        if cvssVersion == '3.1':
+            cve = cve.cvss31
+            nvd = nvd.cvss31
+
+        if cvssVersion == '3.0':
+            cve = cve.cvss30
+            nvd = nvd.cvss30
+
+        if cvssVersion == '2.0':
+            cve = cve.cvss20
+            nvd = nvd.cvss20
 
         if not localvex:
             os.remove(vexfile)
