@@ -1,4 +1,4 @@
-localdev = True
+localdev = False
 
 from flask import Flask, render_template, request, redirect, url_for
 from jinjaMarkdown.markdownExtension import markdownExtension
