@@ -94,9 +94,9 @@ def create_app(test_config=None):
         # what CVSS metrics do we display?  Does our VEX provide any?
         cvssVersion = 0
 
-        if vex.global_cvss['version'] is not None:
+        if vex.global_cvss.version is not None:
             # this is our default
-            cvssVersion = vex.global_cvss['version']
+            cvssVersion = vex.global_cvss.version
 
         if cvssVersion == 0:
             if nvd.cvss31.version is not None:
