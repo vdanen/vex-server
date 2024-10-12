@@ -25,6 +25,8 @@ Updated: {{ vex.updated }}</p>
 
 <h2>{% if vex.global_cvss %}<b>{{ vex.global_cvss['baseScore'] }}</b>{% else %}N/A{% endif %} <span style="font-size:0.7em">| <a href="#cvss-breakdown">CVSS v{{ cvssVersion }} Score Breakdown</a></span></h2>
 
+{% if epss['cve'] %}<h2>EPSS: <b>{{ epss['percent'] }}%</b> (score: {{ epss['score'] }}) <span style="font-size:0.5em">| Last updated: {{ epss['date'] }}</span></h2>{% endif %}
+
 <table class="table">
   <tr style="vertical-align:top">
     <td>
@@ -139,11 +141,27 @@ Updated: {{ vex.updated }}</p>
         </a>
       </h4>
     </div>
-    <div id="collapseOne" class="panel-collapse collapse in">
+    <div id="collapseOne" class="panel-collapse collapse">
       <div class="panel-body">
          For open source software shipped by multiple vendors, the CVSS base scores may vary for each vendor's version depending on the version they ship, how they ship it, the platform, and even how the software is compiled.  This makes scoring of vulnerabilities difficult for third-party vulnerability databases such as NVD that only provide a single CVSS base score for each vulnerability.  Red Hat scores reflect how a vulnerability affects our products specifically.
         <br /><br />
         For more information, see <a href="https://access.redhat.com/solutions/762393">https://access.redhat.com/solutions/762393</a>.
+      </div>
+    </div>
+  </div>
+    <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseNine" class="collapsed">
+          What is EPSS?
+        </a>
+      </h4>
+    </div>
+    <div id="collapseNine" class="panel-collapse collapse">
+      <div class="panel-body">
+         EPSS is the Exploit Prediction Scoring System and is a mechanism to determine the likelihood or probability of exploitation of a vulnerability in the wild.  The EPSS model produces a score between 0 and 1 (0 and 100%).  The higher the score, the greater the probability that a vulnerability will be exploited.
+        <br /><br />
+        For more information, see <a href="https://www.first.org/epss/">https://www.first.org/epss/</a>.
       </div>
     </div>
   </div>

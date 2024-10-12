@@ -37,6 +37,22 @@ def get_from_cve(cve):
     return cve
 
 
+def get_from_epss(cve):
+    response = requests.get(f'https://api.first.org/data/v1/epss?cve={cve}')
+    epss_cve = response.json()
+    if epss_cve['data'][0]['cve'] == cve:
+        # we got the right result
+        epss = {'cve'    : cve,
+                'date'   : epss_cve['data'][0]['date'],
+                'percent': '%.2f' % (float(epss_cve['data'][0]['percentile']) * 100),
+                'score'  : str(epss_cve['data'][0]['epss']).rstrip('0')
+                }
+    else:
+        epss = None
+
+    return epss
+
+
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.jinja_env.add_extension(markdownExtension)
@@ -90,6 +106,7 @@ def create_app(test_config=None):
         packages = VexPackages(vex.raw)
         nvd      = get_from_nvd(vex.cve)
         cve      = get_from_cve(vex.cve)
+        epss     = get_from_epss(vex.cve)
 
         # what CVSS metrics do we display?  Does our VEX provide any?
         cvssVersion = 0
@@ -119,6 +136,6 @@ def create_app(test_config=None):
         if not localvex:
             os.remove(vexfile)
 
-        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, cve=cve, year=year, cvssVersion=cvssVersion)
+        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, cve=cve, year=year, epss=epss, cvssVersion=cvssVersion)
 
     return app
