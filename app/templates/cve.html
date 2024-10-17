@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h1><b>{% block title %}{{ vex.cve }}{% endblock %}</b></h1>
+  <h2><b>{% block title %}{{ vex.cve }} - {{ vex.title }}{% endblock %}</b></h2>
 {% endblock %}
 
 {% block content %}
@@ -18,36 +18,82 @@
 {% endfor %}
 {% endif %}
 
-<p>Public on {{ vex.release_date }}<br />
-Updated: {{ vex.updated }}</p>
+{% if vex.global_impact == "Low" %}
+{% set sevcolor="info" %}
+{% set popover="This rating is given to all other issues that may have a security impact. These are the types of vulnerabilities that are believed to require unlikely circumstances to be able to be exploited, or where a successful exploit would give minimal consequences. This includes flaws that are present in a program’s source code but to which no current or theoretically possible, but unproven, exploitation vectors exist or were found during the technical analysis of the flaw." %}
+{% elif vex.global_impact == "Moderate" %}
+{% set sevcolor="primary" %}
+{% set popover="This rating is given to flaws that may be more difficult to exploit but could still lead to some compromise of the confidentiality, integrity or availability of resources under certain circumstances. It is also given to flaws that could be exploited to cause denial of service-like conditions on AI systems via an inference end point, or allow attackers to steal other users’ data from the AI system without authorization. These are the types of vulnerabilities that could have had a Critical or Important impact but are less easily exploited based on a technical evaluation of the flaw and/or affect unlikely configurations." %}
+{% elif vex.global_impact == "Important" %}
+{% set sevcolor="warning" %}
+{% set popover="This rating is given to flaws that can easily compromise the confidentiality, integrity or availability of resources. These are the types of vulnerabilities that allow local or authenticated users to gain additional privileges, allow unauthenticated remote users to view resources that should otherwise be protected by authentication or other controls, allow authenticated remote users to execute arbitrary code, allow remote users to cause a denial of service, or can cause system compromise via inference end points on AI systems." %}
+{% elif vex.global_impact == "Critical" %}
+{% set sevcolor="danger" %}
+{% set popover="This rating is given to flaws that could be easily exploited by a remote unauthenticated attacker and lead to system compromise (arbitrary code execution) without requiring user interaction, or easily cause system compromise via inference end points on AI systems. Flaws that require authentication, local or physical access to a system, or an unlikely configuration are not classified as Critical impact. These are the types of vulnerabilities that can be exploited by worms." %}
+{% else %}
+{% set sevcolor="light" %}
+{% set popover="Red Hat has determined this issue has no security impact." %}
+{% endif %}
 
-<h2>{% if vex.global_impact %}<b>{{ vex.global_impact }}</b>{% else %}No{% endif %} Impact <span style="font-size:0.5em">| <a href="https://access.redhat.com/security/updates/classification/">What does this mean?</a></span></h2>
+<div class="container">
+  <div class="row justify-content-between">
 
-<h2>{% if vex.global_cvss %}<b>{{ vex.global_cvss['baseScore'] }}</b>{% else %}N/A{% endif %} <span style="font-size:0.7em">| <a href="#cvss-breakdown">CVSS v{{ cvssVersion }} Score Breakdown</a></span></h2>
+<div class="card text-bg-{{ sevcolor }} mb-3" style="max-width: 24rem;">
+  <div class="row g-0">
+    <div class="col-md-4">
+      <br />
+      <img src="https://access.redhat.com/webassets/avalon/j/lib/rh-iconfont-svgs/rh-icon-shield.svg" class="img-fluid rounded-start" alt="...">
+    </div>
+    <div class="col-md-8">
+      <div class="card-body">
+        <h5 class="card-title">{% if vex.global_impact %}<b>{{ vex.global_impact }}</b>{% else %}No{% endif %} Impact</h5>
+        <p class="card-text"><button type="button" class="btn btn-sm btn-light" data-bs-toggle="popover" data-bs-title="{% if vex.global_impact %}{{ vex.global_impact }}{% else %}No{% endif %} Impact" data-bs-content="{{ popover }}"><i class="bi bi-info-circle"></i> What does this mean?</button></p>
+        <p class="card-text"><small class="text-body-secondary">Public on {{ vex.release_date }}<br />Updated: {{ vex.updated }}</small></p>
+      </div>
+    </div>
+  </div>
+</div>
 
-{% if epss['cve'] %}<h2>EPSS: <b>{{ epss['percent'] }}%</b> (score: {{ epss['score'] }}) <span style="font-size:0.5em">| Last updated: {{ epss['date'] }}</span></h2>{% endif %}
+<div class="card text-bg-light mb-3" style="max-width: 24rem;">
+  <div class="row g-0">
+    <div class="col-md-3">
+      <br /><br />
+      <h1>{% if vex.global_cvss %}<b>{{ vex.global_cvss['baseScore'] }}</b>{% else %}N/A{% endif %}</h1>
+    </div>
+    <div class="col-md-9">
+      <div class="card-body">
+        <h5 class="card-title">CVSS</h5>
+        <p class="card-text"><a href="#cvss-breakdown">CVSS v{{ cvssVersion }} Score Breakdown</a></p>
+        <p class="card-text"><small class="text-body-secondary">CVSS score assigned by Red Hat</small></p>
+      </div>
+    </div>
+  </div>
+</div>
 
-<table class="table">
-  <tr style="vertical-align:top">
-    <td>
-      <h2>Description</h2>
-      <p>{% autoescape false %}{{ vex.notes['description']['Vulnerability description']|markdown }}{% endautoescape %}</p>
+    {% if epss['cve'] %}
+    <div class="card text-bg-light mb-3" style="max-width: 24rem;">
+  <div class="row g-0">
+    <div class="col-md-5">
+      <br /><br />
+      <h2>{{ epss['percent'] }}%</h2>
+    </div>
+    <div class="col-md-7">
+      <div class="card-body">
+        <h5 class="card-title">EPSS</h5>
+        <p class="card-text">EPSS Score: {{ epss['score'] }}</p>
+        <p class="card-text"><small class="text-body-secondary">Rating provided by FIRST<br />Last updated: {{ epss['date'] }}</small></p>
+      </div>
+    </div>
+  </div>
+</div>
+    {% endif %}
 
-      <h2>Additional Information</h2>
-      <ul>
-{% if vex.bz_id %}<li> <a href="https://bugzilla.redhat.com/show_bug.cgi?id={{ vex.bz_id }}">Bugzilla {{ vex.bz_id }}</a>: {{ vex.summary }}</li>{% endif %}
-  {%if vex.cwe_id %}<li> <a href="http://cwe.mitre.org/data/definitions/{{ vex.cwe }}.html">{{ vex.cwe_id }}</a>: {{ vex.cwe_name }}</li>{% endif %}
-  <li> <a href="#cve-faq">FAQ:</a> Frequently asked questions about {{ vex.cve }}</li>
-      </ul>
-    </td>
-    <td>
-    <h3>External References</h3>
-      <ul>
-        {% for url in vex.references %}<li><a href="{{ url }}">{{ url }}</a></li>{% endfor %}
-      </ul>
-    </td>
-  </tr>
-</table>
+  </div>
+</div>
+
+
+<h2>Description</h2>
+<p>{% autoescape false %}{{ vex.notes['description']['Vulnerability description']|markdown }}{% endautoescape %}</p>
 
 {% if vex.statement %}
 <h2 id="statement">Statement</h2>
@@ -65,9 +111,9 @@ Updated: {{ vex.updated }}</p>
   <span class="pficon pficon-info"></span>
   <strong>Important note.</strong> CVSS scores for open source components depend on vendor-specific factors (e.g. version or build chain). Therefore, Red Hat's score and impact rating can be different from NVD and other vendors. Red Hat remains the authoritative <a href="https://www.cve.org/ProgramOrganization/CNAs">CVE Naming Authority (CNA)</a> source for its products and services (see <a href="https://access.redhat.com/security/updates/classification#cvss">Red Hat classifications</a>).
 </div>
-<table class="table table-bordered table-hover">
+<table class="table table-bordered table-striped table-hover">
   <thead>
-  <tr><th> </th><th>Red Hat</th><th>National Vulnerability Database</th><th>CVE.org ADP</th></tr>
+  <tr class="table-success"><th> </th><th>Red Hat</th><th>National Vulnerability Database</th><th>CVE.org ADP</th></tr>
   </thead>
   <tbody>
   <tr><td>Base Score</td><td>{{ vex.global_cvss.baseScore }}</td><td>{{ nvd.baseScore }}</td><td>{{ cve.baseScore }}</td></tr>
@@ -91,13 +137,13 @@ Updated: {{ vex.updated }}</p>
 
 {% if packages.fixes %}
 <h2 id="affected">Affected Packages and Issued Red Hat Security Errata</h2>
-<table class="table table-bordered table-hover">
+<table class="table table-bordered table-striped table-hover">
   <thead>
-  <tr><th>Product / Service</th><th>Components</th><th>Errata</th><th>Release Date</th></tr>
+  <tr class="table-primary"><th>Product / Service</th><th>Components</th><th>Errata</th><th>Release Date</th></tr>
   </thead>
   <tbody>
 {% for x in packages.fixes %}
-  <tr><td>{{ x.product }}</td><td><ul>{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td><td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td><td>NOT YET</td></tr>
+  <tr><td>{{ x.product }}</td><td><ul class="list-unstyled">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td><td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td><td>NOT YET</td></tr>
 {% endfor %}
   </tbody>
 </table>
@@ -105,9 +151,9 @@ Updated: {{ vex.updated }}</p>
 
 {% if packages.not_affected %}
 <h2 id="unaffected">Unaffected Packages</h2>
-<table class="table table-bordered table-hover">
+<table class="table table-bordered table-striped table-hover">
   <thead>
-  <tr><th>Product / Service</th><th>Components</th></tr>
+  <tr class="table-primary"><th>Product / Service</th><th>Components</th></tr>
   </thead>
   <tbody>
 {% for x in packages.not_affected %}
@@ -119,9 +165,9 @@ Updated: {{ vex.updated }}</p>
 
 {% if packages.wontfix %}
 <h2 id="wontfix">Affected packages without fixes</h2>
-<table class="table table-bordered table-hover">
+<table class="table table-bordered table-striped table-hover">
   <thead>
-  <tr><th>Product / Service</th><th>Source package</th><th>Reason</th></tr>
+  <tr class="table-primary"><th>Product / Service</th><th>Source package</th><th>Reason</th></tr>
   </thead>
   <tbody>
 {% for x in packages.wontfix %}
@@ -131,50 +177,66 @@ Updated: {{ vex.updated }}</p>
 </table>
 {% endif %}
 
-<h2 id="cve-faq">Frequently Asked Questions</h2>
-<div class="panel-group" id="accordion-markup">
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseOne" class="collapsed">
-          Why is Red Hat's CVSS v3 score or Impact different from other vendors?
-        </a>
-      </h4>
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <h4>External References</h4>
+      <ul>
+        {% for url in vex.references %}<li><a href="{{ url }}">{{ url }}</a></li>{% endfor %}
+      </ul>
     </div>
-    <div id="collapseOne" class="panel-collapse collapse">
-      <div class="panel-body">
+    <div class="col-md-6">
+       <h4>Additional Information</h4>
+      <ul>
+      {% if vex.bz_id %}<li> <a href="https://bugzilla.redhat.com/show_bug.cgi?id={{ vex.bz_id }}">Bugzilla {{ vex.bz_id }}</a>: {{ vex.title }}</li>{% endif %}
+      {% if vex.cwe_id %}<li> <a href="http://cwe.mitre.org/data/definitions/{{ vex.cwe }}.html">{{ vex.cwe_id }}</a>: {{ vex.cwe_name }}</li>{% endif %}
+      <li> <a href="#cve-faq">FAQ:</a> Frequently asked questions about {{ vex.cve }}</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h2 id="cve-faq">Frequently Asked Questions</h2>
+<div class="accordion accordion-flush" id="accordion-cvefaq">
+
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+        Why is Red Hat's CVSS v3 score or Impact different from other vendors?
+      </button>
+    </h2>
+    <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
          For open source software shipped by multiple vendors, the CVSS base scores may vary for each vendor's version depending on the version they ship, how they ship it, the platform, and even how the software is compiled.  This makes scoring of vulnerabilities difficult for third-party vulnerability databases such as NVD that only provide a single CVSS base score for each vulnerability.  Red Hat scores reflect how a vulnerability affects our products specifically.
         <br /><br />
         For more information, see <a href="https://access.redhat.com/solutions/762393">https://access.redhat.com/solutions/762393</a>.
       </div>
     </div>
   </div>
-    <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseNine" class="collapsed">
-          What is EPSS?
-        </a>
-      </h4>
-    </div>
-    <div id="collapseNine" class="panel-collapse collapse">
-      <div class="panel-body">
+
+    <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+        What is EPSS?
+      </button>
+    </h2>
+    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
          EPSS is the Exploit Prediction Scoring System and is a mechanism to determine the likelihood or probability of exploitation of a vulnerability in the wild.  The EPSS model produces a score between 0 and 1 (0 and 100%).  The higher the score, the greater the probability that a vulnerability will be exploited.
         <br /><br />
         For more information, see <a href="https://www.first.org/epss/">https://www.first.org/epss/</a>.
       </div>
     </div>
   </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseTwo" class="collapsed">
-          My product is listed as "Under investigation" or "Affected", when will Red Hat release a fix for this vulnerability?
-        </a>
-      </h4>
-    </div>
-    <div id="collapseTwo" class="panel-collapse collapse">
-      <div class="panel-body">
+
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
+        My product is listed as "Under investigation" or "Affected", when will Red Hat release a fix for this vulnerability?
+      </button>
+    </h2>
+    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
         <ul>
           <li> "Under investigation" doesn't necessarily mean that the product is affected by this vulnerability.  It only means that our Analysis Team is still working on determining whether the product is affected and how it is affected.</li>
           <li> "Affected" means that our Analysis Team has determined that this product is affected by this vulnerability and might release a fix to address this in the near future.</li>
@@ -182,16 +244,15 @@ Updated: {{ vex.updated }}</p>
       </div>
     </div>
   </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseThree" class="collapsed">
-          What can I do if my product is listed as "Will not fix"?
-        </a>
-      </h4>
-    </div>
-    <div id="collapseThree" class="panel-collapse collapse">
-      <div class="panel-body">
+
+    <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="true" aria-controls="collapseFour">
+        What can I do if my product is listed as "Will not fix"?
+      </button>
+    </h2>
+    <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
         A "will not fix" status means that a fix for an affected product version is not planned or not possible due to complexity, which may create additional risk.<br /><br />
         Available options depend mostly on the <a href="https://access.redhat.com/security/updates/classification/">Impact</a> of the vulnerability and the current <a href="https://access.redhat.com/product-life-cycles/update_policies">Life Cycle</a> phase of your product.  Overall, you have the following options:<br />
         <ul>
@@ -202,16 +263,15 @@ Updated: {{ vex.updated }}</p>
       </div>
     </div>
   </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseFour" class="collapsed">
-          What can I do if my product is listed as "Fix deferred"?
-        </a>
-      </h4>
-    </div>
-    <div id="collapseFour" class="panel-collapse collapse">
-      <div class="panel-body">
+
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="true" aria-controls="collapseFive">
+        What can I do if my product is listed as "Fix deferred"?
+      </button>
+    </h2>
+    <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
         A deferred status means that a fix for an affected product version is not guaranteed due to higher-priority development work.<br /><br />
         Available options depend mostly on the <a href="https://access.redhat.com/security/updates/classification/">Impact</a> of the vulnerability and the current <a href="https://access.redhat.com/product-life-cycles/update_policies">Life Cycle</a> phase of your product.  Overall, you have the following options:<br />
         <ul>
@@ -222,69 +282,65 @@ Updated: {{ vex.updated }}</p>
       </div>
     </div>
   </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseFive" class="collapsed">
-          What is a mitigation?
-        </a>
-      </h4>
-    </div>
-    <div id="collapseFive" class="panel-collapse collapse">
-      <div class="panel-body">
+
+    <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="true" aria-controls="collapseSix">
+        What is a mitigation?
+      </button>
+    </h2>
+    <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
         A mitigation is an action that can be taken to reduce the impact of a security vulnerability, without deploying any fixes.
       </div>
     </div>
   </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseSix" class="collapsed">
-          I have a Red Hat product but it is not in the above list, is it affected?
-        </a>
-      </h4>
-    </div>
-    <div id="collapseSix" class="panel-collapse collapse">
-      <div class="panel-body">
+
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="true" aria-controls="collapseSeven">
+        I have a Red Hat product but it is not in the above list, is it affected?
+      </button>
+    </h2>
+    <div id="collapseSeven" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
         The listed products were found to include one or more of the components that this vulnerability affects.  These products underwent a thorough evaluation to determine their affectedness by this vulnerability.  Note that layered products (such as container-based offerings) that consume affected components from any of the products listed in this table may be affected and are not represented.
       </div>
     </div>
   </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseSeven" class="collapsed">
-          Why is my security scanner reporting my product is vulnerable to this vulnerability even though my product version is fixed or not affected?
-        </a>
-      </h4>
-    </div>
-    <div id="collapseSeven" class="panel-collapse collapse">
-      <div class="panel-body">
+
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="true" aria-controls="collapseEight">
+        Why is my security scanner reporting my product is vulnerable to this vulnerability even though my product version is fixed or not affected?
+      </button>
+    </h2>
+    <div id="collapseEight" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
         In order to maintain code stability and compatibility, Red Hat usually does not rebase packages to entirely new versions.  Instead, we <a href="https://access.redhat.com/security/updates/backporting">backport</a> fixes and new features to an older version of the package we distribute.  This can result in some security scanners that only consider the package version to report the package as vulnerable.  To avoid this, we suggest that you use an approved vulnerability scanner from our <a href="https://connect.redhat.com/en/partner-with-us/red-hat-vulnerability-scanner-certification">Red Hat Vulnerability Scanner Certification</a> program.
       </div>
     </div>
   </div>
-  <div class="panel panel-default">
-    <div class="panel-heading">
-      <h4 class="panel-title">
-        <a data-toggle="collapse" data-parent="#accordion-markup" href="#collapseEight" class="collapsed">
-          My product is listed as "Out of Support Scope". What does this mean?
-        </a>
-      </h4>
-    </div>
-    <div id="collapseEight" class="panel-collapse collapse">
-      <div class="panel-body">
+
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNine" aria-expanded="true" aria-controls="collapseNine">
+        My product is listed as "Out of Support Scope". What does this mean?
+      </button>
+    </h2>
+    <div id="collapseNine" class="accordion-collapse collapse" data-bs-parent="#accordion-cvefaq">
+      <div class="accordion-body">
         When a product is listed as "Out of Support Scope", it means a vulnerability with the impact level assigned to this CVE is no longer covered by its current <a href="https://access.redhat.com/product-life-cycles/update_policies">support lifecycle phase</a>.  The product has been identified to contain the impacted component, but analysis to determine whether it is affected or not by this vulnerability was not performed.  The product should be assumed to be affected.  Customers are advised to apply any mitigation options documented on this page, consider removing or disabling the impacted component, or upgrade to a supported version of the product that has an update available.
       </div>
     </div>
   </div>
-</div>
 
-<h3><b>Not sure what something means?</b> Check out our <a href="https://access.redhat.com/security/glossary">Security Glossary</a>.</h3>
+  <hr />
+<p><b>Not sure what something means?</b> Check out our <a href="https://access.redhat.com/security/glossary">Security Glossary</a>.</p>
 
-<p>This page is generated automatically and has not been checked for errors or omissions.<br />
+<p class="small">This page is generated automatically and has not been checked for errors or omissions.<br />
 For clarification or corrections please contact <a href="https://access.redhat.com/security/team/contact/">Red Hat Product Security</a>.</p>
 
-<p>Last Modified: {{ vex.updated }}<br />
+<p class="small">Last Modified: {{ vex.updated }}<br />
   <a href="https://security.access.redhat.com/data/csaf/v2/vex/{{ year }}/{{ vex.cve.lower() }}.json">Original VEX document</a> {{ vex.distribution }}</p>
 {% endblock %}
