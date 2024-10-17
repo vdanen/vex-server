@@ -122,8 +122,15 @@ def create_app(test_config=None):
                 cvssVersion = '3.1'
 
         if cvssVersion == '3.1':
-            cve = cve.cvss31
-            nvd = nvd.cvss31
+            # we can display either 3.1 or 3.0
+            if nvd.cvss31.version is not None:
+                nvd = nvd.cvss31
+            else:
+                nvd = nvd.cvss30
+            if cve.cvss31.version is not None:
+                cve = cve.cvss31
+            else:
+                cve = cve.cvss30
 
         if cvssVersion == '3.0':
             cve = cve.cvss30
