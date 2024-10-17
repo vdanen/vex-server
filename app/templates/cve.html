@@ -10,9 +10,9 @@
 <div class="alert alert-danger">
   <span class="pficon pficon-info"></span>
   {% if ex['source'] %}
-  <strong>Known exploit reported {{ ex['date'] }} by <a href="{{ ex['url'] }}{% if ex['source'] == 'CISA' %}?search_api_fulltext={{ vex.cve }}&field_date_added_wrapper=all&field_cve=&sort_by=field_date_added&items_per_page=20&url={% endif %}">{{ ex['source'] }}</a></strong>
+  <strong><i class="bi bi-radioactive"></i> Known exploit reported {{ ex['date'] }} by <a href="{{ ex['url'] }}{% if ex['source'] == 'CISA' %}?search_api_fulltext={{ vex.cve }}&field_date_added_wrapper=all&field_cve=&sort_by=field_date_added&items_per_page=20&url={% endif %}">{{ ex['source'] }}</a></strong>
   {% else %}
-  <strong>Known exploit reported {{ ex['date'] }} {{ ex['details'] }}</a></strong>
+  <strong><i class="bi bi-radioactive"></i> Known exploit reported {{ ex['date'] }} {{ ex['details'] }}</a></strong>
   {% endif %}
 </div>
 {% endfor %}
@@ -94,6 +94,8 @@
 
 <h2>Description</h2>
 <p>{% autoescape false %}{{ vex.notes['description']['Vulnerability description']|markdown }}{% endautoescape %}</p>
+
+{% if vex.cwe_id %}<p><a href="http://cwe.mitre.org/data/definitions/{{ vex.cwe_sid }}.html" class="btn btn-secondary"> <i class="bi bi-question-diamond-fill"></i> {{vex.cwe_id}}: {{ vex.cwe_name }}{% endif %}</a></p>
 
 {% if vex.statement %}
 <h2 id="statement">Statement</h2>
@@ -179,18 +181,10 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-12">
       <h4>External References</h4>
       <ul>
-        {% for url in vex.references %}<li><a href="{{ url }}">{{ url }}</a></li>{% endfor %}
-      </ul>
-    </div>
-    <div class="col-md-6">
-       <h4>Additional Information</h4>
-      <ul>
-      {% if vex.bz_id %}<li> <a href="https://bugzilla.redhat.com/show_bug.cgi?id={{ vex.bz_id }}">Bugzilla {{ vex.bz_id }}</a>: {{ vex.title }}</li>{% endif %}
-      {% if vex.cwe_id %}<li> <a href="http://cwe.mitre.org/data/definitions/{{ vex.cwe }}.html">{{ vex.cwe_id }}</a>: {{ vex.cwe_name }}</li>{% endif %}
-      <li> <a href="#cve-faq">FAQ:</a> Frequently asked questions about {{ vex.cve }}</li>
+        {% for url in vex.references %}<li><small><a href="{{ url }}">{{ url }}</a></small></li>{% endfor %}
       </ul>
     </div>
   </div>
