@@ -16,9 +16,13 @@ localvex = False
 def get_from_nvd(cve):
     response = requests.get(f'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve}')
     nvd_cve  = response.json()
-    if nvd_cve['vulnerabilities'][0]['cve']['id'] == cve:
-        # we got the right result
-        nvd = NVD(nvd_cve)
+    if len(nvd_cve['vulnerabilities']) > 0:
+        # we have a result
+        if nvd_cve['vulnerabilities'][0]['cve']['id'] == cve:
+            # we got the right result
+            nvd = NVD(nvd_cve)
+        else:
+            nvd = NVD(None)
     else:
         nvd = NVD(None)
 
@@ -28,9 +32,13 @@ def get_from_nvd(cve):
 def get_from_cve(cve):
     response = requests.get(f'https://cveawg.mitre.org/api/cve/{cve}')
     cve_cve  = response.json()
-    if cve_cve['cveMetadata']['cveId'] == cve:
-        # we got the right result
-        cve = CVE(cve_cve)
+    if 'cveMetadata' in cve_cve:
+        # we have a result
+        if cve_cve['cveMetadata']['cveId'] == cve:
+            # we got the right result
+            cve = CVE(cve_cve)
+        else:
+            cve = CVE(None)
     else:
         cve = CVE(None)
 
@@ -40,13 +48,17 @@ def get_from_cve(cve):
 def get_from_epss(cve):
     response = requests.get(f'https://api.first.org/data/v1/epss?cve={cve}')
     epss_cve = response.json()
-    if epss_cve['data'][0]['cve'] == cve:
-        # we got the right result
-        epss = {'cve'    : cve,
-                'date'   : epss_cve['data'][0]['date'],
-                'percent': '%.2f' % (float(epss_cve['data'][0]['percentile']) * 100),
-                'score'  : str(epss_cve['data'][0]['epss']).rstrip('0')
-                }
+    if len(epss_cve['data']) > 0:
+        # we have a result
+        if epss_cve['data'][0]['cve'] == cve:
+            # we got the right result
+            epss = {'cve'    : cve,
+                    'date'   : epss_cve['data'][0]['date'],
+                    'percent': '%.2f' % (float(epss_cve['data'][0]['percentile']) * 100),
+                    'score'  : str(epss_cve['data'][0]['epss']).rstrip('0')
+                    }
+        else:
+            epss = None
     else:
         epss = None
 
