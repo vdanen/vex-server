@@ -15,6 +15,9 @@ localvex = False
 
 def get_from_nvd(cve):
     response = requests.get(f'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve}')
+    if response.status_code != 200:
+        return NVD(None)
+
     nvd_cve  = response.json()
     if len(nvd_cve['vulnerabilities']) > 0:
         # we have a result
@@ -31,6 +34,9 @@ def get_from_nvd(cve):
 
 def get_from_cve(cve):
     response = requests.get(f'https://cveawg.mitre.org/api/cve/{cve}')
+    if response.status_code != 200:
+        return CVE(None)
+
     cve_cve  = response.json()
     if 'cveMetadata' in cve_cve:
         # we have a result
@@ -47,6 +53,9 @@ def get_from_cve(cve):
 
 def get_from_epss(cve):
     response = requests.get(f'https://api.first.org/data/v1/epss?cve={cve}')
+    if response.status_code != 200:
+        return None
+
     epss_cve = response.json()
     if len(epss_cve['data']) > 0:
         # we have a result
