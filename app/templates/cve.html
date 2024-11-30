@@ -160,7 +160,7 @@
   </thead>
   <tbody>
 {% for x in packages.fixes %}
-  <tr><td>{{ x.product }}</td><td><ul class="list-unstyled">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td><td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td><td>NOT YET</td></tr>
+  <tr><td>{{ x.product }}</td><td><ul class="list-unstyled">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td><td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td><td>{{ x.date }}</td></tr>
 {% endfor %}
   </tbody>
 </table>
