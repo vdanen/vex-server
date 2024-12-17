@@ -181,7 +181,7 @@
 {% endif %}
 
 {% if packages.wontfix %}
-<h2 id="wontfix">Affected packages without fixes</h2>
+<h2 id="wontfix">Affected packages that will not be fixed</h2>
 <table class="table table-bordered table-striped table-hover">
   <thead>
   <tr class="table-primary"><th>Product / Service</th><th>Source package</th><th>Reason</th></tr>
@@ -189,6 +189,20 @@
   <tbody>
 {% for x in packages.wontfix %}
   <tr><td>{{ x.product }}</td><td>{{ x.component }}</td><td>{% if x.reason == 'Out of support scope' %}<a href="https://access.redhat.com/support/policy/updates/errata/">{{ x.reason }}</a>{% else %}{{ x.reason }}{% endif %}</td></tr>
+{% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if packages.affected %}
+<h2 id="affected">Affected packages without fixes</h2>
+<table class="table table-bordered table-striped table-hover">
+  <thead>
+  <tr class="table-primary"><th>Product / Service</th><th>Source package</th></tr>
+  </thead>
+  <tbody>
+{% for x in packages.affected %}
+  <tr><td>{{ x.product }}</td><td>{{ ', '.join(x.components) }}</td></tr>
 {% endfor %}
   </tbody>
 </table>
