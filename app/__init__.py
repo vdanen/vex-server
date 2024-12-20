@@ -32,13 +32,11 @@ def get_cached(source, cve):
 
     hour_ago = time.time() - 60 * 60
     if hour_ago > os.path.getctime(cachefile):
-        print(f'DEBUG: This cached file is too old and is being removed: {cachefile}')
         # this file is at least an hour old, get a new one
         os.remove(cachefile)
         return None
 
     with open(cachefile, 'r') as f:
-        print(f'DEBUG: Loading cached file: {cachefile}')
         j = json.load(f)
 
     return j
@@ -60,7 +58,6 @@ def cache(source, cve, data):
 
     with open(cachefile, 'w') as f:
         json.dump(data, f)
-        print(f'DEBUG: Saved cache file: {cachefile}')
 
     return
 
@@ -116,10 +113,8 @@ def get_from_cve(cve_name):
 def get_from_redhat(cve_name):
     cached = get_cached('vex', cve_name)
     if cached:
-        print('hit1')
         vex = Vex(cached)
     else:
-        print('hit2')
         # Red Hat uses year-based subdirectories
         year     = cve_name[4:8]
         response = requests.get(f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve_name.lower()}.json')
