@@ -5,7 +5,6 @@ from jinjaMarkdown.markdownExtension import markdownExtension
 import json
 import os
 import requests
-import shutil
 import time
 if localdev:
     # for local development on pre-release vex-reader
@@ -13,8 +12,6 @@ if localdev:
     sys.path.append('/Users/redhat/git/vex-reader')
 from vex import Vex, VexPackages, NVD, CVE
 
-# whether or not to load VEX files locally or remotely
-localvex = False
 cachedir = './cache/'
 
 
@@ -116,6 +113,26 @@ def get_from_cve(cve_name):
     return cve
 
 
+def get_from_redhat(cve_name):
+    cached = get_cached('vex', cve_name)
+    if cached:
+        print('hit1')
+        vex = Vex(cached)
+    else:
+        print('hit2')
+        # Red Hat uses year-based subdirectories
+        year     = cve_name[4:8]
+        response = requests.get(f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve_name.lower()}.json')
+        if response.status_code != 200:
+            return Vex(None)
+
+        vex_cve = response.json()
+        vex     = Vex(vex_cve)
+        cache('vex', cve_name, vex_cve)
+
+    return vex
+
+
 def get_from_epss(cve_name):
     cached = get_cached('epss', cve_name)
     if cached:
@@ -172,39 +189,7 @@ def create_app(test_config=None):
         if not cve:
             return render_template('page_not_found.html'), 404
 
-        # VEX files are in year-based directories, so pull the CVE year
-        vexdir  = '/Users/redhat/git/redhat-vex/'
-        year    = cve[4:8]
-
-        if localvex:
-            vexfile = f'{vexdir}/{year}/{cve}.json'
-            if not os.path.exists(vexfile):
-                return render_template('cve_not_found.html'), 404
-        else:
-            # TODO: we handle loading VEX differently to account for local loading but maybe we should get rid of that...
-            c_vexfile = f'{cachedir}/vex/{cve}.json'
-            cached = get_cached('vex', cve)
-            if cached:
-                # we have a cache of this, but can't load it the same way as everything else
-                vexfile   = f'{cachedir}/vex/{cve}.json'
-            else:
-                # grab from remote and handle any errors here rather than in vex-reader
-                vexfile = f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve.lower()}.json'
-                response = requests.get(vexfile)
-                if response.status_code == 200:
-                    with open(f'{cve}.json', 'w') as f:
-                        f.write(response.text)
-                elif response.status_code == 404:
-                    return render_template('cve_not_found.html'), 404
-                else:
-                    return render_template('page_not_found.html'), 404
-                vexfile = f'{cve}.json'
-                # update the cache
-                # TODO: right now we just copy it since VEX() loads the json
-                shutil.copy2(vexfile, c_vexfile)
-
-
-        vex      = Vex(vexfile)
+        vex      = get_from_redhat(cve)
         packages = VexPackages(vex.raw)
         nvd      = get_from_nvd(vex.cve)
         cve      = get_from_cve(vex.cve)
@@ -242,6 +227,6 @@ def create_app(test_config=None):
             cve = cve.cvss20
             nvd = nvd.cvss20
 
-        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, cve=cve, year=year, epss=epss, cvssVersion=cvssVersion)
+        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, cve=cve, epss=epss, cvssVersion=cvssVersion)
 
     return app

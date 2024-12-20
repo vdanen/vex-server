@@ -365,5 +365,5 @@
 For clarification or corrections please contact <a href="https://access.redhat.com/security/team/contact/">Red Hat Product Security</a>.</p>
 
 <p class="small">Last Modified: {{ vex.updated }}<br />
-  <a href="https://security.access.redhat.com/data/csaf/v2/vex/{{ year }}/{{ vex.cve.lower() }}.json">Original VEX document</a> {{ vex.distribution }}</p>
+  <a href="https://security.access.redhat.com/data/csaf/v2/vex/{{ vex.cve[4:8] }}/{{ vex.cve.lower() }}.json">Original VEX document</a> {{ vex.distribution }}</p>
 {% endblock %}
