@@ -119,7 +119,7 @@ def get_from_redhat(cve_name):
         year     = cve_name[4:8]
         response = requests.get(f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve_name.lower()}.json')
         if response.status_code != 200:
-            return Vex(None)
+            return None
 
         vex_cve = response.json()
         vex     = Vex(vex_cve)
@@ -185,6 +185,8 @@ def create_app(test_config=None):
             return render_template('page_not_found.html'), 404
 
         vex      = get_from_redhat(cve)
+        if not vex:
+            return render_template('cve_not_found.html'), 404
         packages = VexPackages(vex.raw)
         nvd      = get_from_nvd(vex.cve)
         cve      = get_from_cve(vex.cve)
