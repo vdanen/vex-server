@@ -1,23 +1,16 @@
-localdev = True
-
 from flask import Flask, render_template, request, redirect, url_for
 from jinjaMarkdown.markdownExtension import markdownExtension
 import json
 import os
 import requests
+import sys
 import time
-if localdev:
-    # for local development on pre-release vex-reader
-    import sys
-    sys.path.append('/Users/redhat/git/vex-reader')
-from vex import Vex, VexPackages, NVD, CVE
-
-cachedir = './cache/'
 
 
-def get_cached(source, cve):
+def get_cached(cachedir, source, cve):
     """
     Check for and return a cached copy of a document
+    :param cachedir: directory of the cache
     :param source: one of vex, cve, nvd, epss
     :param cve: cve to look up
     :return: json
@@ -42,9 +35,10 @@ def get_cached(source, cve):
     return j
 
 
-def cache(source, cve, data):
+def cache(cachedir, source, cve, data):
     """
     Cache retrieved data
+    :param cachedir: directory of the cache
     :param source: one of vex, cve, nvd, epss
     :param cve: cve to look up
     :param data: json data
@@ -62,8 +56,15 @@ def cache(source, cve, data):
     return
 
 
-def get_from_nvd(cve_name):
-    cached = get_cached('nvd', cve_name)
+def get_from_nvd(cachedir, NVD, cve_name):
+    """
+    Get details from NVD for this CVE and return it as a simple NVD object
+    :param cachedir: directory of the cache
+    :param NVD: NVD object
+    :param cve_name: cve to look up
+    :return: NVD object
+    """
+    cached = get_cached(cachedir,'nvd', cve_name)
     if cached:
         nvd = NVD(cached)
     else:
@@ -77,7 +78,7 @@ def get_from_nvd(cve_name):
             if nvd_cve['vulnerabilities'][0]['cve']['id'] == cve_name:
                 # we got the right result, cache and use it
                 nvd = NVD(nvd_cve)
-                cache('nvd', cve_name, nvd_cve)
+                cache(cachedir,'nvd', cve_name, nvd_cve)
             else:
                 nvd = NVD(None)
         else:
@@ -86,8 +87,15 @@ def get_from_nvd(cve_name):
     return nvd
 
 
-def get_from_cve(cve_name):
-    cached = get_cached('cve', cve_name)
+def get_from_cve(cachedir, CVE, cve_name):
+    """
+    Get details from CVE.org for this CVE and return it as a simple CVE object
+    :param cachedir: directory of the cache
+    :param CVE: CVE object
+    :param cve_name: cve to look up
+    :return: CVE object
+    """
+    cached = get_cached(cachedir, 'cve', cve_name)
     if cached:
         cve = CVE(cached)
     else:
@@ -101,7 +109,7 @@ def get_from_cve(cve_name):
             if cve_cve['cveMetadata']['cveId'] == cve_name:
                 # we got the right result, cache and use it
                 cve = CVE(cve_cve)
-                cache('cve', cve_name, cve_cve)
+                cache(cachedir, 'cve', cve_name, cve_cve)
             else:
                 cve = CVE(None)
         else:
@@ -110,8 +118,15 @@ def get_from_cve(cve_name):
     return cve
 
 
-def get_from_redhat(cve_name):
-    cached = get_cached('vex', cve_name)
+def get_from_redhat(cachedir, Vex, cve_name):
+    """
+    Get details from Red Hat for this CVE and return it as a Vex object
+    :param cachedir: directory of the cache
+    :param Vex: Vex object
+    :param cve_name: cve to look up
+    :return: Vex object
+    """
+    cached = get_cached(cachedir,'vex', cve_name)
     if cached:
         vex = Vex(cached)
     else:
@@ -123,13 +138,19 @@ def get_from_redhat(cve_name):
 
         vex_cve = response.json()
         vex     = Vex(vex_cve)
-        cache('vex', cve_name, vex_cve)
+        cache(cachedir, 'vex', cve_name, vex_cve)
 
     return vex
 
 
-def get_from_epss(cve_name):
-    cached = get_cached('epss', cve_name)
+def get_from_epss(cachedir, cve_name):
+    """
+    Get details from FIRST EPSS for this CVE and return it as an epss dict
+    :param cachedir: directory of the cache
+    :param cve_name: cve to look up
+    :return: dict
+    """
+    cached = get_cached(cachedir, 'epss', cve_name)
     if cached:
         epss = cached
     else:
@@ -147,7 +168,7 @@ def get_from_epss(cve_name):
                         'percent': '%.2f' % (float(epss_cve['data'][0]['percentile']) * 100),
                         'score'  : str(epss_cve['data'][0]['epss']).rstrip('0')
                         }
-                cache('epss', cve_name, epss)
+                cache(cachedir, 'epss', cve_name, epss)
             else:
                 epss = None
         else:
@@ -156,10 +177,19 @@ def get_from_epss(cve_name):
     return epss
 
 
-def create_app(test_config=None):
+def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.jinja_env.add_extension(markdownExtension)
-    #app.config.from_pyfile('config.py')
+    app.config.from_pyfile('config.py')
+
+    cachedir = app.config['CACHE_DIRECTORY']
+    if app.config['TESTING']:
+        # for local development on pre-release vex-reader
+        import sys
+        sys.path.append(app.config['OVERRIDE_VEX_READER'])
+
+    # we can only import vex after we know whether we're in testing mode or not
+    from vex import Vex, VexPackages, NVD, CVE
 
     try:
         os.makedirs(app.instance_path)
@@ -184,13 +214,13 @@ def create_app(test_config=None):
         if not cve:
             return render_template('page_not_found.html'), 404
 
-        vex      = get_from_redhat(cve)
+        vex      = get_from_redhat(cachedir, Vex, cve)
         if not vex:
             return render_template('cve_not_found.html'), 404
         packages = VexPackages(vex.raw)
-        nvd      = get_from_nvd(vex.cve)
-        cve      = get_from_cve(vex.cve)
-        epss     = get_from_epss(vex.cve)
+        nvd      = get_from_nvd(cachedir, NVD, vex.cve)
+        cve      = get_from_cve(cachedir, CVE, vex.cve)
+        epss     = get_from_epss(cachedir, vex.cve)
 
         # what CVSS metrics do we display?  Does our VEX provide any?
         cvssVersion = 0
