@@ -8,3 +8,8 @@ https://access.redhat.com/security/data/csaf/v2/vex/2024/
 
 It uses my [vex-reader](https://pypi.org/project/vex-reader/) Python module
 and shows CVE pages for Red Hat VEX documents using the Flask framework.
+
+Copy the `instance/config.py.example` to `instance/config.py` to set the
+location of the cache directory.  Should be all the configuration this
+needs.
+
