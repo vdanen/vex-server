@@ -156,11 +156,17 @@
 <h2 id="fixed">Affected Packages and Issued Red Hat Security Errata</h2>
 <table class="table table-bordered table-striped table-hover">
   <thead>
-  <tr class="table-primary"><th>Product / Service</th><th>Components</th><th>Errata</th><th>Release Date</th></tr>
+  <tr class="table-primary"><th>Product / Service</th><th>Components</th><th>Errata</th><th>Release Date</th><th>DTF</th></tr>
   </thead>
   <tbody>
 {% for x in packages.fixes %}
-  <tr><td>{{ x.product }}</td><td><ul class="list-unstyled">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td><td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td><td>{{ x.date }}</td></tr>
+  <tr>
+    <td>{{ x.product }}</td>
+    <td><ul class="list-unstyled">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td>
+    <td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td>
+    <td>{{ x.date }}</td>
+    <td>{{ fixdeltas[x.id] }}d</td>
+  </tr>
 {% endfor %}
   </tbody>
 </table>

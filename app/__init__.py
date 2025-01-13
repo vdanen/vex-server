@@ -1,3 +1,5 @@
+import datetime
+
 from flask import Flask, render_template, request, redirect, url_for
 from jinjaMarkdown.markdownExtension import markdownExtension
 import json
@@ -177,6 +179,19 @@ def get_from_epss(cachedir, cve_name):
     return epss
 
 
+def fix_delta(release, pkgs):
+    # figure out the days from public to release
+    deltas = {}
+    rd     = datetime.datetime.strptime(release, "%Y-%m-%d")            # public date format
+
+    for x in pkgs.fixes:
+        xd           = datetime.datetime.strptime(x.date, "%B %d, %Y")  # release date format
+        delta        = xd - rd
+        deltas[x.id] = delta.days
+
+    return deltas
+
+
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.jinja_env.add_extension(markdownExtension)
@@ -254,6 +269,8 @@ def create_app():
             cve = cve.cvss20
             nvd = nvd.cvss20
 
-        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, cve=cve, epss=epss, cvssVersion=cvssVersion)
+        fixdeltas = fix_delta(vex.release_date, packages)
+
+        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, cve=cve, epss=epss, cvssVersion=cvssVersion, fixdeltas=fixdeltas)
 
     return app
