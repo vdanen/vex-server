@@ -112,9 +112,9 @@
 
 {% if vex.cwe_id %}<p><a href="http://cwe.mitre.org/data/definitions/{{ vex.cwe_sid }}.html" class="btn btn-secondary"> <i class="bi bi-question-diamond-fill"></i> {{vex.cwe_id}}: {{ vex.cwe_name }}{% endif %}</a></p>
 
-{% if vex.statement %}
+{% if vex.notes['other']['Statement'] %}
 <h2 id="statement">Statement</h2>
-<p>{% autoescape false %}{{ x.statement|markdown }}{% endautoescape %}</p>
+<p>{% autoescape false %}{{ vex.notes['other']['Statement']|markdown }}{% endautoescape %}</p>
 {% endif %}
 
 {% if packages.mitigation %}
