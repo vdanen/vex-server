@@ -42,5 +42,8 @@
         const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]')
         const popoverList = [...popoverTriggerList].map(popoverTriggerEl => new bootstrap.Popover(popoverTriggerEl))
     </script>
+    {% if beacon %}
+    <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "{{ beacon }}"}'></script><!-- End Cloudflare Web Analytics -->
+    {% endif %}
 </body>
 </html>

@@ -1,4 +1,4 @@
 TESTING = False
 CACHE_DIRECTORY = '/path/to/root/of/cache/'
 OVERRIDE_VEX_READER = '/path/to/local/vex_reader/for/testing'
-
+CLOUDFLARE_BEACON = 'cloudflare token'
