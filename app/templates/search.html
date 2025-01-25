@@ -5,9 +5,12 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" action="/cve">
-    <label for="cve">CVE</label>
-    <input name="cve" id="cve" required>
-    <input type="submit" value="Search">
+<form method="post" action="{{ url_for('redirect_cve') }}" class="mt-3">
+    {{ form.csrf_token }}
+    <div class="mb-3">
+        <label for="cve" class="form-label">CVE</label>
+        <input type="text" class="form-control" name="cve" id="cve" required placeholder="Enter CVE ID (e.g. CVE-2024-1234)">
+    </div>
+    <button type="submit" class="btn btn-primary">Search</button>
 </form>
 {% endblock %}

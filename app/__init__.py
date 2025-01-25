@@ -1,5 +1,6 @@
 import datetime
-
+import re
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import Flask, render_template, request, redirect, url_for
 from jinjaMarkdown.markdownExtension import markdownExtension
 import json
@@ -7,6 +8,8 @@ import os
 import requests
 import sys
 import time
+from flask_wtf.csrf import CSRFProtect
+from flask_wtf import FlaskForm
 
 
 def get_cached(cachedir, source, cve):
@@ -58,6 +61,12 @@ def cache(cachedir, source, cve, data):
     return
 
 
+def validate_cve_id(cve_id):
+    """Validate CVE ID format"""
+    cve_pattern = re.compile(r'^CVE-\d{4}-\d{4,}$', re.IGNORECASE)
+    return bool(cve_pattern.match(cve_id))
+
+
 def get_from_nvd(cachedir, NVD, cve_name):
     """
     Get details from NVD for this CVE and return it as a simple NVD object
@@ -70,21 +79,27 @@ def get_from_nvd(cachedir, NVD, cve_name):
     if cached:
         nvd = NVD(cached)
     else:
-        response = requests.get(f'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_name}')
-        if response.status_code != 200:
-            return NVD(None)
+        try:
+            response = requests.get(
+                f'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_name}',
+                timeout=10  # Add timeout
+            )
+            if response.status_code != 200:
+                return NVD(None)
 
-        nvd_cve  = response.json()
-        if len(nvd_cve['vulnerabilities']) > 0:
-            # we have a result
-            if nvd_cve['vulnerabilities'][0]['cve']['id'] == cve_name:
-                # we got the right result, cache and use it
-                nvd = NVD(nvd_cve)
-                cache(cachedir,'nvd', cve_name, nvd_cve)
+            nvd_cve  = response.json()
+            if len(nvd_cve['vulnerabilities']) > 0:
+                # we have a result
+                if nvd_cve['vulnerabilities'][0]['cve']['id'] == cve_name:
+                    # we got the right result, cache and use it
+                    nvd = NVD(nvd_cve)
+                    cache(cachedir,'nvd', cve_name, nvd_cve)
+                else:
+                    nvd = NVD(None)
             else:
                 nvd = NVD(None)
-        else:
-            nvd = NVD(None)
+        except requests.exceptions.Timeout:
+            return NVD(None)
 
     return nvd
 
@@ -192,12 +207,27 @@ def fix_delta(release, pkgs):
     return deltas
 
 
+csrf = CSRFProtect()
+
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
-    app.jinja_env.add_extension(markdownExtension)
+
+    # Load config first
     app.config.from_pyfile('config.py')
 
+    # Ensure we have a secret key
+    if not app.config.get('SECRET_KEY'):
+        raise RuntimeError(
+            'No SECRET_KEY set. Please add SECRET_KEY to instance/config.py'
+        )
+
+    csrf.init_app(app)
+
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+    app.jinja_env.add_extension(markdownExtension)
+
     cachedir = app.config['CACHE_DIRECTORY']
+    beacon   = None if app.config['TESTING'] else app.config['CLOUDFLARE_BEACON']
     if app.config['TESTING']:
         # for local development on pre-release vex-reader
         import sys
@@ -217,7 +247,8 @@ def create_app():
 
     @app.route('/')
     def home():
-        return render_template('search.html')
+        form = FlaskForm()  # Create an empty form for CSRF
+        return render_template('search.html', form=form)
 
     @app.route('/cve', methods=['POST'])
     def redirect_cve():
@@ -227,11 +258,14 @@ def create_app():
     @app.route('/cve/<cve>')
     def render_cve(cve=None):
         if not cve:
-            return render_template('page_not_found.html'), 404
+            return render_template('cve_not_found.html'), 404
+
+        if not validate_cve_id(cve):
+            return render_template('cve_not_valid.html', cve=cve), 404
 
         vex      = get_from_redhat(cachedir, Vex, cve)
         if not vex:
-            return render_template('cve_not_found.html'), 404
+            return render_template('cve_not_found.html', cve=cve), 404
         packages = VexPackages(vex.raw)
         nvd      = get_from_nvd(cachedir, NVD, vex.cve)
         cve      = get_from_cve(cachedir, CVE, vex.cve)
@@ -271,6 +305,8 @@ def create_app():
 
         fixdeltas = fix_delta(vex.release_date, packages)
 
-        return render_template('cve.html', vex=vex, packages=packages, nvd=nvd, cve=cve, epss=epss, cvssVersion=cvssVersion, fixdeltas=fixdeltas)
+        return render_template('cve.html', vex=vex,
+                               packages=packages, nvd=nvd, cve=cve, epss=epss,
+                               cvssVersion=cvssVersion, fixdeltas=fixdeltas, beacon=beacon)
 
     return app
