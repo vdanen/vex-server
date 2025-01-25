@@ -116,21 +116,27 @@ def get_from_cve(cachedir, CVE, cve_name):
     if cached:
         cve = CVE(cached)
     else:
-        response = requests.get(f'https://cveawg.mitre.org/api/cve/{cve_name}')
-        if response.status_code != 200:
-            return CVE(None)
+        try:
+            response = requests.get(
+                f'https://cveawg.mitre.org/api/cve/{cve_name}',
+                timeout=10
+            )
+            if response.status_code != 200:
+                return CVE(None)
 
-        cve_cve  = response.json()
-        if 'cveMetadata' in cve_cve:
-            # we have a result
-            if cve_cve['cveMetadata']['cveId'] == cve_name:
-                # we got the right result, cache and use it
-                cve = CVE(cve_cve)
-                cache(cachedir, 'cve', cve_name, cve_cve)
+            cve_cve  = response.json()
+            if 'cveMetadata' in cve_cve:
+                # we have a result
+                if cve_cve['cveMetadata']['cveId'] == cve_name:
+                    # we got the right result, cache and use it
+                    cve = CVE(cve_cve)
+                    cache(cachedir, 'cve', cve_name, cve_cve)
+                else:
+                    cve = CVE(None)
             else:
                 cve = CVE(None)
-        else:
-            cve = CVE(None)
+        except requests.exceptions.Timeout:
+            return CVE(None)
 
     return cve
 
@@ -147,15 +153,21 @@ def get_from_redhat(cachedir, Vex, cve_name):
     if cached:
         vex = Vex(cached)
     else:
-        # Red Hat uses year-based subdirectories
-        year     = cve_name[4:8]
-        response = requests.get(f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve_name.lower()}.json')
-        if response.status_code != 200:
-            return None
+        try:
+            # Red Hat uses year-based subdirectories
+            year     = cve_name[4:8]
+            response = requests.get(
+                f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve_name.lower()}.json',
+                timeout=10
+            )
+            if response.status_code != 200:
+                return None
 
-        vex_cve = response.json()
-        vex     = Vex(vex_cve)
-        cache(cachedir, 'vex', cve_name, vex_cve)
+            vex_cve = response.json()
+            vex     = Vex(vex_cve)
+            cache(cachedir, 'vex', cve_name, vex_cve)
+        except requests.exceptions.Timeout:
+            return None
 
     return vex
 
@@ -171,25 +183,31 @@ def get_from_epss(cachedir, cve_name):
     if cached:
         epss = cached
     else:
-        response = requests.get(f'https://api.first.org/data/v1/epss?cve={cve_name}')
-        if response.status_code != 200:
-            return None
+        try:
+            response = requests.get(
+                f'https://api.first.org/data/v1/epss?cve={cve_name}',
+                timeout=10
+            )
+            if response.status_code != 200:
+                return None
 
-        epss_cve = response.json()
-        if len(epss_cve['data']) > 0:
-            # we have a result
-            if epss_cve['data'][0]['cve'] == cve_name:
-                # we got the right result
-                epss = {'cve'    : cve_name,
-                        'date'   : epss_cve['data'][0]['date'],
-                        'percent': '%.2f' % (float(epss_cve['data'][0]['percentile']) * 100),
-                        'score'  : str(epss_cve['data'][0]['epss']).rstrip('0')
-                        }
-                cache(cachedir, 'epss', cve_name, epss)
+            epss_cve = response.json()
+            if len(epss_cve['data']) > 0:
+                # we have a result
+                if epss_cve['data'][0]['cve'] == cve_name:
+                    # we got the right result
+                    epss = {'cve'    : cve_name,
+                            'date'   : epss_cve['data'][0]['date'],
+                            'percent': '%.2f' % (float(epss_cve['data'][0]['percentile']) * 100),
+                            'score'  : str(epss_cve['data'][0]['epss']).rstrip('0')
+                            }
+                    cache(cachedir, 'epss', cve_name, epss)
+                else:
+                    epss = None
             else:
                 epss = None
-        else:
-            epss = None
+        except requests.exceptions.Timeout:
+            return None
 
     return epss
 
