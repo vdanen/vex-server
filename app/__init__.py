@@ -10,6 +10,11 @@ import sys
 import time
 from flask_wtf.csrf import CSRFProtect
 from flask_wtf import FlaskForm
+def get_cache_path(cachedir, source, cve):
+    """
+    Get cache path
+    """
+    return f'{cachedir}/{source}/{cve}.json'
 
 
 def get_cached(cachedir, source, cve):
@@ -24,7 +29,7 @@ def get_cached(cachedir, source, cve):
         print(f'ERROR: Invalid source: {source}')
         sys.exit(1)
 
-    cachefile = f'{cachedir}/{source}/{cve}.json'
+    cachefile = get_cache_path(cachedir, source, cve)
     if not os.path.exists(cachefile):
         return None
 
@@ -53,7 +58,7 @@ def cache(cachedir, source, cve, data):
         print(f'ERROR: Invalid source: {source}')
         sys.exit(1)
 
-    cachefile = f'{cachedir}/{source}/{cve}.json'
+    cachefile = get_cache_path(cachedir, source, cve)
 
     with open(cachefile, 'w') as f:
         json.dump(data, f)
