@@ -10,7 +10,12 @@ import sys
 import time
 from flask_wtf.csrf import CSRFProtect
 from flask_wtf import FlaskForm
+from concurrent.futures import ThreadPoolExecutor
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from flask_caching import Cache
+
+
 def get_cache_path(cachedir, source, cve):
     """
     Get cache path
@@ -233,6 +238,51 @@ def fix_delta(release, pkgs):
 
 csrf = CSRFProtect()
 
+def create_session():
+    """
+    Create a requests Session with retry logic and connection pooling
+    :return: configured requests.Session object with:
+        - 3 retries with exponential backoff
+        - Connection pooling (10 connections)
+        - Automatic retries on 500-level errors
+    """
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=0.5,
+        status_forcelist=[500, 502, 503, 504]
+    )
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=10, pool_maxsize=10)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+    return session
+
+
+def get_all_data(cachedir, Vex, NVD, CVE, cve_name):
+    """
+    Get all external data concurrently from NVD, CVE.org, and EPSS
+    :param cachedir: directory of the cache
+    :param Vex: Vex object class
+    :param NVD: NVD object class
+    :param CVE: CVE object class
+    :param cve_name: cve to look up
+    :return: tuple of (nvd, cve, epss) objects
+        nvd: NVD object containing NVD vulnerability data
+        cve: CVE object containing CVE.org data
+        epss: dict containing EPSS scoring data
+    """
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        nvd_future = executor.submit(get_from_nvd, cachedir, NVD, cve_name)
+        cve_future = executor.submit(get_from_cve, cachedir, CVE, cve_name)
+        epss_future = executor.submit(get_from_epss, cachedir, cve_name)
+        
+        nvd = nvd_future.result()
+        cve = cve_future.result()
+        epss = epss_future.result()
+        
+    return nvd, cve, epss
+
+
 def determine_cvss_version(vex, nvd, cve):
     """
     Determine which CVSS version to use based on available data
@@ -254,6 +304,7 @@ def determine_cvss_version(vex, nvd, cve):
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
+    app.session = create_session()  # Create a shared session
     cache = Cache(app, config={
         'CACHE_TYPE': 'simple',
         'CACHE_DEFAULT_TIMEOUT': 300
@@ -311,14 +362,12 @@ def create_app():
         if not validate_cve_id(cve):
             return render_template('cve_not_valid.html', cve=cve), 404
 
-        vex      = get_from_redhat(cachedir, Vex, cve)
+        vex = get_from_redhat(cachedir, Vex, cve)
         if not vex:
             return render_template('cve_not_found.html', cve=cve), 404
+        
         packages = VexPackages(vex.raw)
-        nvd      = get_from_nvd(cachedir, NVD, vex.cve)
-        cve      = get_from_cve(cachedir, CVE, vex.cve)
-        epss     = get_from_epss(cachedir, vex.cve)
-
+        nvd, cve, epss = get_all_data(cachedir, Vex, NVD, CVE, vex.cve)
 
         cvssVersion = determine_cvss_version(vex, nvd, cve)
         
