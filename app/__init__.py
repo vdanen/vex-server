@@ -18,7 +18,11 @@ from flask_caching import Cache
 
 def get_cache_path(cachedir, source, cve):
     """
-    Get cache path
+    Get the file path for a cached document
+    :param cachedir: directory of the cache
+    :param source: one of vex, cve, nvd, epss
+    :param cve: cve to look up
+    :return: string containing the full path to the cache file
     """
     return f'{cachedir}/{source}/{cve}.json'
 
