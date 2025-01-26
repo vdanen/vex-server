@@ -330,8 +330,10 @@ def create_app():
     """
     app = Flask(__name__, instance_relative_config=True)
     app.session = create_session()  # Create a shared session
+
+    # Update cache configuration to use full path
     cache = Cache(app, config={
-        'CACHE_TYPE': 'simple',
+        'CACHE_TYPE': 'flask_caching.backends.SimpleCache',
         'CACHE_DEFAULT_TIMEOUT': 300
     })
 
