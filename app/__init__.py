@@ -73,7 +73,11 @@ def cache(cachedir, source, cve, data):
 
 
 def validate_cve_id(cve_id):
-    """Validate CVE ID format"""
+    """
+    Validate that a string matches CVE ID format (CVE-YYYY-NNNN+)
+    :param cve_id: string to validate
+    :return: bool indicating if string matches CVE ID format
+    """
     cve_pattern = re.compile(r'^CVE-\d{4}-\d{4,}$', re.IGNORECASE)
     return bool(cve_pattern.match(cve_id))
 
@@ -224,6 +228,12 @@ def get_from_epss(cachedir, cve_name):
 
 
 def fix_delta(release, pkgs):
+    """
+    Calculate the number of days between vulnerability public date and fix release dates
+    :param release: string containing the vulnerability public date (YYYY-MM-DD)
+    :param pkgs: VexPackages object containing fix information
+    :return: dict mapping package IDs to number of days between public and fix dates
+    """
     # figure out the days from public to release
     deltas = {}
     rd     = datetime.datetime.strptime(release, "%Y-%m-%d")            # public date format
@@ -302,7 +312,18 @@ def determine_cvss_version(vex, nvd, cve):
         
     return '2.0'
 
+
 def create_app():
+    """
+    Create and configure the Flask application
+    :return: configured Flask application with:
+        - CSRF protection
+        - Proxy fix for security headers
+        - Template extensions
+        - Cache configuration
+        - Error handlers
+        - Route handlers
+    """
     app = Flask(__name__, instance_relative_config=True)
     app.session = create_session()  # Create a shared session
     cache = Cache(app, config={
