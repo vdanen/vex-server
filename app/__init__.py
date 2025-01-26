@@ -233,6 +233,25 @@ def fix_delta(release, pkgs):
 
 csrf = CSRFProtect()
 
+def determine_cvss_version(vex, nvd, cve):
+    """
+    Determine which CVSS version to use based on available data
+    :param vex: Vex object containing vulnerability data
+    :param nvd: NVD object containing NVD vulnerability data
+    :param cve: CVE object containing CVE.org data
+    :return: string indicating CVSS version ('3.1', '3.0', or '2.0')
+    """
+    if vex.global_cvss.version:
+        return vex.global_cvss.version
+        
+    if nvd.cvss31.version or cve.cvss31.version:
+        return '3.1'
+        
+    if nvd.cvss30.version or cve.cvss30.version:
+        return '3.0'
+        
+    return '2.0'
+
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
     cache = Cache(app, config={
@@ -300,37 +319,19 @@ def create_app():
         cve      = get_from_cve(cachedir, CVE, vex.cve)
         epss     = get_from_epss(cachedir, vex.cve)
 
-        # what CVSS metrics do we display?  Does our VEX provide any?
-        cvssVersion = 0
 
-        if vex.global_cvss.version is not None:
-            # this is our default
-            cvssVersion = vex.global_cvss.version
-
-        if cvssVersion == 0:
-            if nvd.cvss31.version is not None:
-                cvssVersion = '3.1'
-            elif cve.cvss31.version is not None:
-                cvssVersion = '3.1'
-
+        cvssVersion = determine_cvss_version(vex, nvd, cve)
+        
+        # Apply CVSS version
         if cvssVersion == '3.1':
-            # we can display either 3.1 or 3.0
-            if nvd.cvss31.version is not None:
-                nvd = nvd.cvss31
-            else:
-                nvd = nvd.cvss30
-            if cve.cvss31.version is not None:
-                cve = cve.cvss31
-            else:
-                cve = cve.cvss30
-
-        if cvssVersion == '3.0':
-            cve = cve.cvss30
+            nvd = nvd.cvss31 if nvd.cvss31.version else nvd.cvss30
+            cve = cve.cvss31 if cve.cvss31.version else cve.cvss30
+        elif cvssVersion == '3.0':
             nvd = nvd.cvss30
-
-        if cvssVersion == '2.0':
-            cve = cve.cvss20
+            cve = cve.cvss30
+        else:  # 2.0
             nvd = nvd.cvss20
+            cve = cve.cvss20
 
         fixdeltas = fix_delta(vex.release_date, packages)
 
