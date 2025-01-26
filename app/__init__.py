@@ -10,6 +10,7 @@ import sys
 import time
 from flask_wtf.csrf import CSRFProtect
 from flask_wtf import FlaskForm
+from flask_caching import Cache
 def get_cache_path(cachedir, source, cve):
     """
     Get cache path
@@ -234,6 +235,10 @@ csrf = CSRFProtect()
 
 def create_app():
     app = Flask(__name__, instance_relative_config=True)
+    cache = Cache(app, config={
+        'CACHE_TYPE': 'simple',
+        'CACHE_DEFAULT_TIMEOUT': 300
+    })
 
     # Load config first
     app.config.from_pyfile('config.py')
@@ -279,6 +284,7 @@ def create_app():
         return redirect(url_for('render_cve', cve=cve))
 
     @app.route('/cve/<cve>')
+    @cache.memoize(timeout=300)  # Cache for 5 minutes
     def render_cve(cve=None):
         if not cve:
             return render_template('cve_not_found.html'), 404
