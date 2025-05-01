@@ -18,6 +18,13 @@
 {% endfor %}
 {% endif %}
 
+{% if kev %}
+<div class="alert alert-danger">
+  <span class="pficon pficon-info"></span>
+  <strong><a href="https://vulncheck.com/cve/{{ vex.cve }}"><img src="/static/vulncheck.png"></a> reports a known exploit added {{ kev['date_added'] }} </strong>
+</div>
+{% endif %}
+
 {% if vex.global_impact == "Low" %}
 {% set sevcolor="info" %}
 {% set popover="This rating is given to all other issues that may have a security impact. These are the types of vulnerabilities that are believed to require unlikely circumstances to be able to be exploited, or where a successful exploit would give minimal consequences. This includes flaws that are present in a program’s source code but to which no current or theoretically possible, but unproven, exploitation vectors exist or were found during the technical analysis of the flaw." %}

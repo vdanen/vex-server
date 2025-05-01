@@ -5,9 +5,11 @@ from flask import Flask, render_template, request, redirect, url_for
 from jinjaMarkdown.markdownExtension import markdownExtension
 import json
 import os
+import pytz
 import requests
 import sys
 import time
+import vulncheck_sdk
 from flask_wtf.csrf import CSRFProtect
 from flask_wtf import FlaskForm
 from concurrent.futures import ThreadPoolExecutor
@@ -35,7 +37,7 @@ def get_cached(cachedir, source, cve):
     :param cve: cve to look up
     :return: json
     """
-    if source not in ['vex', 'cve', 'nvd', 'epss']:
+    if source not in ['vex', 'cve', 'nvd', 'epss', 'kev']:
         print(f'ERROR: Invalid source: {source}')
         sys.exit(1)
 
@@ -231,6 +233,45 @@ def get_from_epss(cachedir, cve_name):
     return epss
 
 
+def get_from_kev(cachedir, cve_name, vulncheck):
+    """
+    Get details from VulnCheck KEV for this CVE and return it as a kev dict
+    :param cachedir: directory of the cache
+    :param cve_name: cve to look up
+    :return: dict
+    """
+    cached = get_cached(cachedir, 'kev', cve_name)
+    if cached:
+        kev = cached
+    else:
+        vconfig = vulncheck_sdk.Configuration(host='https://api.vulncheck.com/v3')
+        vconfig.api_key["Bearer"] = vulncheck
+
+        kev = None
+        with vulncheck_sdk.ApiClient(vconfig) as api_client:
+            indices_client = vulncheck_sdk.IndicesApi(api_client)
+
+            try:
+                api_response = indices_client.index_vulncheck_kev_get(cve=cve_name)
+
+                for d in api_response.data:
+                    if d.date_added.endswith('Z'):
+                        xd = datetime.datetime.fromisoformat(d.date_added[:-1])
+                        xd = xd.replace(tzinfo=pytz.timezone('UTC'))
+                    else:
+                        xd = datetime.datetime.fromisoformat(d.date_added)
+                    date_added = xd.astimezone(pytz.timezone('US/Eastern')).strftime('%B %d, %Y')
+                    kev = {'cve': d.cve[0],
+                           'cwes': d.cwes,
+                           'cisa_date_added': d.cisa_date_added,
+                           'ransomware': d.known_ransomware_campaign_use,
+                           'date_added': date_added}
+            except vulncheck_sdk.exceptions.BadRequestException:
+                kev = None
+
+    return kev
+
+
 def fix_delta(release, pkgs):
     """
     Calculate the number of days between vulnerability public date and fix release dates
@@ -272,9 +313,9 @@ def create_session():
     return session
 
 
-def get_all_data(cachedir, Vex, NVD, CVE, cve_name):
+def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
     """
-    Get all external data concurrently from NVD, CVE.org, and EPSS
+    Get all external data concurrently from NVD, CVE.org, EPSS and VulnCheck KEV
     :param cachedir: directory of the cache
     :param Vex: Vex object class
     :param NVD: NVD object class
@@ -284,17 +325,24 @@ def get_all_data(cachedir, Vex, NVD, CVE, cve_name):
         nvd: NVD object containing NVD vulnerability data
         cve: CVE object containing CVE.org data
         epss: dict containing EPSS scoring data
+        kev: KEV object containing VulnCheck KEV data
     """
     with ThreadPoolExecutor(max_workers=3) as executor:
         nvd_future = executor.submit(get_from_nvd, cachedir, NVD, cve_name)
         cve_future = executor.submit(get_from_cve, cachedir, CVE, cve_name)
         epss_future = executor.submit(get_from_epss, cachedir, cve_name)
-        
+
         nvd = nvd_future.result()
         cve = cve_future.result()
         epss = epss_future.result()
+
+        if vulncheck:
+            kev_future = executor.submit(get_from_kev, cachedir, cve_name, vulncheck)
+            kev = kev_future.result()
+        else:
+            kev = None
         
-    return nvd, cve, epss
+    return nvd, cve, epss, kev
 
 
 def determine_cvss_version(vex, nvd, cve):
@@ -346,6 +394,9 @@ def create_app():
             'No SECRET_KEY set. Please add SECRET_KEY to instance/config.py'
         )
 
+    # enable vulncheck KEV if we have a token
+    vulncheck = app.config.get('VULNCHECK_API_TOKEN')
+
     csrf.init_app(app)
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
@@ -394,7 +445,7 @@ def create_app():
             return render_template('cve_not_found.html', cve=cve), 404
         
         packages = VexPackages(vex.raw)
-        nvd, cve, epss = get_all_data(cachedir, Vex, NVD, CVE, vex.cve)
+        nvd, cve, epss, kev = get_all_data(cachedir, Vex, NVD, CVE, vex.cve, vulncheck)
 
         cvssVersion = determine_cvss_version(vex, nvd, cve)
         
@@ -413,6 +464,6 @@ def create_app():
 
         return render_template('cve.html', vex=vex,
                                packages=packages, nvd=nvd, cve=cve, epss=epss,
-                               cvssVersion=cvssVersion, fixdeltas=fixdeltas, beacon=beacon)
+                               cvssVersion=cvssVersion, fixdeltas=fixdeltas, beacon=beacon, kev=kev)
 
     return app

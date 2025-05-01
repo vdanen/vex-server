@@ -3,3 +3,6 @@ CACHE_DIRECTORY = '/path/to/root/of/cache/'
 OVERRIDE_VEX_READER = '/path/to/local/vex_reader/for/testing'
 CLOUDFLARE_BEACON = 'cloudflare token'
 SECRET_KEY = 'your-secret-key'
+# if you want to enable VulnCheck KVE lookups, you will need a VulnCheck
+# token for the API, see https://vulncheck.com/community
+VULNCHECK_API_TOKEN = ''
