@@ -66,7 +66,7 @@ def cache(cachedir, source, cve, data):
     :param data: json data
     :return:
     """
-    if source not in ['vex', 'cve', 'nvd', 'epss']:
+    if source not in ['vex', 'cve', 'nvd', 'epss', 'kev']:
         print(f'ERROR: Invalid source: {source}')
         sys.exit(1)
 
@@ -261,11 +261,12 @@ def get_from_kev(cachedir, cve_name, vulncheck):
                     else:
                         xd = datetime.datetime.fromisoformat(d.date_added)
                     date_added = xd.astimezone(pytz.timezone('US/Eastern')).strftime('%B %d, %Y')
-                    kev = {'cve': d.cve[0],
-                           'cwes': d.cwes,
+                    kev = {'cve'            : d.cve[0],
+                           'cwes'           : d.cwes,
                            'cisa_date_added': d.cisa_date_added,
-                           'ransomware': d.known_ransomware_campaign_use,
-                           'date_added': date_added}
+                           'ransomware'     : d.known_ransomware_campaign_use,
+                           'date_added'     : date_added}
+                    cache(cachedir, 'kev', cve_name, kev)
             except vulncheck_sdk.exceptions.BadRequestException:
                 kev = None
 
