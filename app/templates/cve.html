@@ -10,9 +10,9 @@
 <div class="alert alert-danger">
   <span class="pficon pficon-info"></span>
   {% if ex['source'] %}
-  <strong><i class="bi bi-radioactive"></i> Known exploit reported {{ ex['date'] }} by <a href="{{ ex['url'] }}{% if ex['source'] == 'CISA' %}?search_api_fulltext={{ vex.cve }}&field_date_added_wrapper=all&field_cve=&sort_by=field_date_added&items_per_page=20&url={% endif %}">{{ ex['source'] }}</a></strong>
+  <strong><i class="bi bi-radioactive"></i> <a href="{{ ex['url'] }}{% if ex['source'] == 'CISA' %}?search_api_fulltext={{ vex.cve }}&field_date_added_wrapper=all&field_cve=&sort_by=field_date_added&items_per_page=20&url={% endif %}">{{ ex['source'] }}</a> reports known exploitation as of {{ ex['date'] }}</strong>
   {% else %}
-  <strong><i class="bi bi-radioactive"></i> Known exploit reported {{ ex['date'] }} {{ ex['details'] }}</a></strong>
+  <strong><i class="bi bi-radioactive"></i> Known exploitation reported as of {{ ex['date'] }} {{ ex['details'] }}</a></strong>
   {% endif %}
 </div>
 {% endfor %}
@@ -21,7 +21,7 @@
 {% if kev %}
 <div class="alert alert-danger">
   <span class="pficon pficon-info"></span>
-  <strong><a href="https://vulncheck.com/cve/{{ vex.cve }}"><img src="/static/vulncheck.png"></a> reports a known exploit added {{ kev['date_added'] }} </strong>
+  <strong><a href="https://vulncheck.com/cve/{{ vex.cve }}"><img src="/static/vulncheck.png"></a> reports known exploitation as of {{ kev['date_added'] }} </strong>
 </div>
 {% endif %}
 
