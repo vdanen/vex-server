@@ -22,7 +22,7 @@ pydantic==2.11.4
 pydantic_core==2.33.2
 Pygments==2.18.0
 pytz==2024.2
-requests==2.32.3
+requests==2.32.4
 rich==13.9.1
 typing-inspection==0.4.0
 urllib3==2.2.3
