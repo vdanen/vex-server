@@ -404,11 +404,12 @@ def create_app():
     app.jinja_env.add_extension(markdownExtension)
 
     cachedir = app.config['CACHE_DIRECTORY']
-    beacon   = None if app.config['TESTING'] else app.config['CLOUDFLARE_BEACON']
+    beacon   = None if 'CLOUDFLARE_BEACON' not in app.config  else app.config['CLOUDFLARE_BEACON']
     if app.config['TESTING']:
         # for local development on pre-release vex-reader
         import sys
         sys.path.append(app.config['OVERRIDE_VEX_READER'])
+        beacon = None
 
     # we can only import vex after we know whether we're in testing mode or not
     from vex import Vex, VexPackages, NVD, CVE
