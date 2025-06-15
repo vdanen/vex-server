@@ -1,4 +1,8 @@
 # vex-server
+
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10739/badge)](https://www.bestpractices.dev/projects/10739)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/vdanen/vex-server?sort=semver)
+
 This is mostly a proof of concept to illustrate that VEX documents aren't
 just the new shiny thing, but they're actually pretty darn functional.
 
@@ -39,5 +43,3 @@ Use GitHub issues to file any bugs.  You can also [report security
 vulnerabilities](https://github.com/vdanen/vex-server/security/advisories/new)
 in GitHub.  Contributions are welcome if you're so inclined, create a PR
 and I'll review it.  Feel free to fork and adapt for your own use.
-
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10739/badge)](https://www.bestpractices.dev/projects/10739)
