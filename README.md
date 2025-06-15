@@ -9,18 +9,16 @@ https://access.redhat.com/security/data/csaf/v2/vex/2024/
 It uses my [vex-reader](https://pypi.org/project/vex-reader/) Python module
 and shows CVE pages for Red Hat VEX documents using the Flask framework.
 
-Copy the `instance/config.py.example` to `instance/config.py` to set the
-location of the cache directory.  Should be all the configuration this
-needs.
-
-Use GitHub issues to file any bugs.  You can also [report security
-vulnerabilities](https://github.com/vdanen/vex-server/security/advisories/new)
-in GitHub.  Contributions are welcome if you're so inclined.
+Fundamentally, the vex-reader Python module is used to read VEX data from
+Red Hat.  It will also obtain data on vulnerabilities from NVD, CVE.org,
+CISA's KEV, VulnCheck's KEV (if configured and a token is provided in the
+configuration), and FIRST's EPSS.
 
 ## Configuration
 
 Copy `instance/config.py.example` to `instance/config.py`.  The
-configuration file is very self-explanatory.
+configuration file is very self-explanatory.  Everything other than the
+cache directory configuration is optional.
 
 ## Running
 
@@ -35,5 +33,11 @@ dependencies with `pip install -r requirements.txt`.
 
 Start the demo server by running `sh gunicorn-start.sh`.  This will start
 the gunicorn server listening on the localhost.
+
+## Reporting bugs
+Use GitHub issues to file any bugs.  You can also [report security
+vulnerabilities](https://github.com/vdanen/vex-server/security/advisories/new)
+in GitHub.  Contributions are welcome if you're so inclined, create a PR
+and I'll review it.  Feel free to fork and adapt for your own use.
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10739/badge)](https://www.bestpractices.dev/projects/10739)
