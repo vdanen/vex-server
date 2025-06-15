@@ -1,6 +1,7 @@
 # vex-server
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10739/badge)](https://www.bestpractices.dev/projects/10739)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/vdanen/vex-server/badge)](https://scorecard.dev/viewer/?uri=github.com/vdanen/vex-server)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/vdanen/vex-server?sort=semver)
 
 This is mostly a proof of concept to illustrate that VEX documents aren't
