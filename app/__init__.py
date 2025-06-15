@@ -22,7 +22,7 @@ def get_cache_path(cachedir, source, cve):
     """
     Get the file path for a cached document
     :param cachedir: directory of the cache
-    :param source: one of vex, cve, nvd, epss
+    :param source: one of vex, cve, nvd, epss, kev
     :param cve: cve to look up
     :return: string containing the full path to the cache file
     """
