@@ -463,9 +463,22 @@ def create_app():
             cve = cve.cvss20
 
         fixdeltas = fix_delta(vex.release_date, packages)
+        # let's make sure that the not affects aren't a list of containers...
+        print(vars(packages.not_affected[0]))
+        not_affected = []
+        for x in packages.not_affected:
+            include = True
+            for a in x.components:
+                if '@sha256' in a:
+                    include=False
+                    print(f'skipping: {a}')
+            if include:
+                not_affected.append(x)
 
-        return render_template('cve.html', vex=vex,
-                               packages=packages, nvd=nvd, cve=cve, epss=epss,
-                               cvssVersion=cvssVersion, fixdeltas=fixdeltas, beacon=beacon, kev=kev)
+        return render_template('cve.html', vex=vex, nvd=nvd, cve=cve, epss=epss,
+                               cvssVersion=cvssVersion, fixdeltas=fixdeltas, beacon=beacon, kev=kev,
+                               fixes=packages.fixes, not_affected=not_affected,
+                               wontfix=packages.wontfix, affected=packages.affected,
+                               mitigation=packages.mitigation)
 
     return app
