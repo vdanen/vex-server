@@ -2,7 +2,6 @@ import datetime
 import re
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import Flask, render_template, request, redirect, url_for
-from jinjaMarkdown.markdownExtension import markdownExtension
 import json
 import os
 import pytz
@@ -10,6 +9,7 @@ import requests
 import sys
 import time
 import vulncheck_sdk
+import markdown
 from flask_wtf.csrf import CSRFProtect
 from flask_wtf import FlaskForm
 from concurrent.futures import ThreadPoolExecutor
@@ -366,6 +366,22 @@ def determine_cvss_version(vex, nvd, cve):
     return '2.0'
 
 
+def convert_bare_urls_to_markdown(text):
+    """
+    Convert bare URLs in text to markdown format for clickable links.
+    Finds URLs and converts them to [url](url) format.
+    """
+    # Regex pattern to match URLs (http, https, ftp)
+    url_pattern = r'(?<![\[\(])(https?://[^\s\)\]]+|ftp://[^\s\)\]]+)(?![\]\)])'
+
+    def replace_url(match):
+        url = match.group(1)
+        return f'[{url}]({url})'
+
+    # Replace bare URLs with markdown format
+    return re.sub(url_pattern, replace_url, text)
+
+
 def create_app():
     """
     Create and configure the Flask application
@@ -401,7 +417,6 @@ def create_app():
     csrf.init_app(app)
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
-    app.jinja_env.add_extension(markdownExtension)
 
     cachedir = app.config['CACHE_DIRECTORY']
     beacon   = None if 'CLOUDFLARE_BEACON' not in app.config  else app.config['CLOUDFLARE_BEACON']
@@ -463,7 +478,10 @@ def create_app():
             cve = cve.cvss20
 
         fixdeltas = fix_delta(vex.release_date, packages)
-        # let's make sure that the not affects aren't a list of containers...
+
+        # let's make sure that the not affects aren't a list of containers because
+        # no one really cares which containers aren't affected and it's just a
+        # silly long list anyways
         print(vars(packages.not_affected[0]))
         not_affected = []
         for x in packages.not_affected:
@@ -471,14 +489,37 @@ def create_app():
             for a in x.components:
                 if '@sha256' in a:
                     include=False
-                    print(f'skipping: {a}')
             if include:
                 not_affected.append(x)
+
+        # do the markdown transformations here, not as jinja filters
+        mitigation = ''
+        # we just want the first one
+        if len(packages.mitigation) > 0:
+            # Convert bare URLs to markdown format first, then process markdown
+            m_text     = convert_bare_urls_to_markdown(packages.mitigation[0].details)
+            mitigation = markdown.markdown(m_text)
+        print(mitigation)
+
+        statement = ''
+        if 'other' in vex.notes:
+            if 'Statement' in vex.notes['other']:
+                statement = markdown.markdown(convert_bare_urls_to_markdown(vex.notes['other']['Statement']))
+            else:
+                statement = ''
+
+        if 'description' in vex.notes:
+            if 'Vulnerability description' in vex.notes['description']:
+                description = markdown.markdown(convert_bare_urls_to_markdown(vex.notes['description']['Vulnerability description']))
+            else:
+                description = ''
+        else:
+            description = ''
 
         return render_template('cve.html', vex=vex, nvd=nvd, cve=cve, epss=epss,
                                cvssVersion=cvssVersion, fixdeltas=fixdeltas, beacon=beacon, kev=kev,
                                fixes=packages.fixes, not_affected=not_affected,
                                wontfix=packages.wontfix, affected=packages.affected,
-                               mitigation=packages.mitigation)
+                               mitigation=mitigation, statement=statement, description=description)
 
     return app

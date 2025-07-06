@@ -115,21 +115,19 @@
 
 
 <h2>Description</h2>
-<p>{% autoescape false %}{{ vex.notes['description']['Vulnerability description']|urlize|markdown }}{% endautoescape %}</p>
+<p>{% autoescape false %}{{ description }}{% endautoescape %}</p>
 
 {% if vex.cwe_id %}<p><a href="http://cwe.mitre.org/data/definitions/{{ vex.cwe_sid }}.html" class="btn btn-secondary"> <i class="bi bi-question-diamond-fill"></i> {{vex.cwe_id}}: {{ vex.cwe_name }}{% endif %}</a></p>
 
-{% if vex.notes['other'] %}
-{% if vex.notes['other']['Statement'] %}
+{% if statement %}
 <h2 id="statement">Statement</h2>
-<p>{% autoescape false %}{{ vex.notes['other']['Statement']|urlize|markdown }}{% endautoescape %}</p>
-{% endif %}
+<p>{% autoescape false %}{{ statement }}{% endautoescape %}</p>
 {% endif %}
 
 {% if mitigation %}
 <h2 id="mitigations">Mitigations</h2>
 
-{% for x in mitigation %}<p>{% autoescape false %}{{ x.details|urlize|markdown }}{% endautoescape %}</p>{% endfor %}
+<p>{% autoescape false %}{{ mitigation }}{% endautoescape %}</p>
 {% endif %}
 
 <h2 id="cvss">CVSS {{ cvssVersion }} Score</h2>
