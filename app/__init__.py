@@ -482,7 +482,6 @@ def create_app():
         # let's make sure that the not affects aren't a list of containers because
         # no one really cares which containers aren't affected and it's just a
         # silly long list anyways
-        print(vars(packages.not_affected[0]))
         not_affected = []
         for x in packages.not_affected:
             include = True
@@ -499,7 +498,6 @@ def create_app():
             # Convert bare URLs to markdown format first, then process markdown
             m_text     = convert_bare_urls_to_markdown(packages.mitigation[0].details)
             mitigation = markdown.markdown(m_text)
-        print(mitigation)
 
         statement = ''
         if 'other' in vex.notes:
