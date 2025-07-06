@@ -115,21 +115,19 @@
 
 
 <h2>Description</h2>
-<p>{% autoescape false %}{{ vex.notes['description']['Vulnerability description']|urlize|markdown }}{% endautoescape %}</p>
+<p>{% autoescape false %}{{ description }}{% endautoescape %}</p>
 
 {% if vex.cwe_id %}<p><a href="http://cwe.mitre.org/data/definitions/{{ vex.cwe_sid }}.html" class="btn btn-secondary"> <i class="bi bi-question-diamond-fill"></i> {{vex.cwe_id}}: {{ vex.cwe_name }}{% endif %}</a></p>
 
-{% if vex.notes['other'] %}
-{% if vex.notes['other']['Statement'] %}
+{% if statement %}
 <h2 id="statement">Statement</h2>
-<p>{% autoescape false %}{{ vex.notes['other']['Statement']|urlize|markdown }}{% endautoescape %}</p>
-{% endif %}
+<p>{% autoescape false %}{{ statement }}{% endautoescape %}</p>
 {% endif %}
 
-{% if packages.mitigation %}
+{% if mitigation %}
 <h2 id="mitigations">Mitigations</h2>
 
-{% for x in packages.mitigation %}<p>{% autoescape false %}{{ x.details|urlize|markdown }}{% endautoescape %}</p>{% endfor %}
+<p>{% autoescape false %}{{ mitigation }}{% endautoescape %}</p>
 {% endif %}
 
 <h2 id="cvss">CVSS {{ cvssVersion }} Score</h2>
@@ -161,14 +159,14 @@
   </tbody>
 </table>
 
-{% if packages.fixes %}
+{% if fixes %}
 <h2 id="fixed">Affected Packages and Issued Red Hat Security Errata</h2>
 <table class="table table-bordered table-striped table-hover">
   <thead>
   <tr class="table-primary"><th>Product / Service</th><th>Components</th><th>Errata</th><th>Release Date</th><th>DTF</th></tr>
   </thead>
   <tbody>
-{% for x in packages.fixes %}
+{% for x in fixes %}
   <tr>
     <td>{{ x.product }}</td>
     <td><ul class="list-unstyled">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td>
@@ -181,42 +179,42 @@
 </table>
 {% endif %}
 
-{% if packages.not_affected %}
+{% if not_affected %}
 <h2 id="unaffected">Unaffected Packages</h2>
 <table class="table table-bordered table-striped table-hover">
   <thead>
   <tr class="table-primary"><th>Product / Service</th><th>Components</th></tr>
   </thead>
   <tbody>
-{% for x in packages.not_affected %}
+{% for x in not_affected %}
   <tr><td>{{ x.product }}</td><td>{{ ', '.join(x.components) }}</td></tr>
 {% endfor %}
   </tbody>
 </table>
 {% endif %}
 
-{% if packages.wontfix %}
+{% if wontfix %}
 <h2 id="wontfix">Affected packages that will not be fixed</h2>
 <table class="table table-bordered table-striped table-hover">
   <thead>
   <tr class="table-primary"><th>Product / Service</th><th>Source package</th><th>Reason</th></tr>
   </thead>
   <tbody>
-{% for x in packages.wontfix %}
+{% for x in wontfix %}
   <tr><td>{{ x.product }}</td><td>{{ x.component }}</td><td>{% if x.reason == 'Out of support scope' %}<a href="https://access.redhat.com/support/policy/updates/errata/">{{ x.reason }}</a>{% else %}{{ x.reason }}{% endif %}</td></tr>
 {% endfor %}
   </tbody>
 </table>
 {% endif %}
 
-{% if packages.affected %}
+{% if affected %}
 <h2 id="affected">Affected packages without fixes</h2>
 <table class="table table-bordered table-striped table-hover">
   <thead>
   <tr class="table-primary"><th>Product / Service</th><th>Source package</th></tr>
   </thead>
   <tbody>
-{% for x in packages.affected %}
+{% for x in affected %}
   <tr><td>{{ x.product }}</td><td>{{ ', '.join(x.components) }}</td></tr>
 {% endfor %}
   </tbody>
