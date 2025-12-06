@@ -72,6 +72,10 @@ def cache(cachedir, source, cve, data):
 
     cachefile = get_cache_path(cachedir, source, cve)
 
+    # Ensure the cache directory exists
+    cache_dir = os.path.dirname(cachefile)
+    os.makedirs(cache_dir, exist_ok=True)
+
     with open(cachefile, 'w') as f:
         json.dump(data, f)
 
@@ -434,6 +438,14 @@ def create_app():
     except OSError:
         pass
 
+    # Ensure cache directories exist
+    for subdir in ['cve', 'vex', 'nvd', 'epss', 'kev']:
+        cache_subdir = os.path.join(cachedir, subdir)
+        try:
+            os.makedirs(cache_subdir, exist_ok=True)
+        except OSError:
+            pass
+
     @app.errorhandler(404)
     def page_not_found(error):
         return render_template('page_not_found.html'), 404
@@ -443,10 +455,14 @@ def create_app():
         form = FlaskForm()  # Create an empty form for CSRF
         return render_template('search.html', form=form)
 
-    @app.route('/cve', methods=['POST'])
+    @app.route('/cve', methods=['GET', 'POST'])
     def redirect_cve():
-        cve = request.form['cve']
-        return redirect(url_for('render_cve', cve=cve))
+        if request.method == 'POST':
+            cve = request.form['cve']
+            return redirect(url_for('render_cve', cve=cve))
+        else:
+            # GET request to /cve without a CVE name
+            return render_template('cve_not_found.html'), 404
 
     @app.route('/cve/<cve>')
     @cache.memoize(timeout=300)  # Cache for 5 minutes
