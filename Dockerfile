@@ -19,11 +19,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Create cache directory structure
-RUN mkdir -p cache/cve
-RUN mkdir -p cache/vex
-RUN mkdir -p cache/nvd
-RUN mkdir -p cache/epss
-RUN mkdir -p cache/kev
+RUN mkdir -p cache/cve cache/vex cache/nvd cache/epss cache/kev
 
 # Create instance directory if it doesn't exist
 RUN mkdir -p instance
