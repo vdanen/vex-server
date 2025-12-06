@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Cache (will be created in container)
+cache/
+
+# Instance config (should be mounted or created)
+instance/config.py
+
+# Documentation
+*.md
+LICENSE
+SECURITY.md
+
+# Other
+.DS_Store
+*.log
+

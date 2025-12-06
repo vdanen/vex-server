@@ -1,0 +1,22 @@
+services:
+  vex-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vex-server
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount instance directory for config
+      - ./instance:/app/instance
+    environment:
+      - FLASK_APP=flask_app.py
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
