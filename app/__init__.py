@@ -26,7 +26,19 @@ def get_cache_path(cachedir, source, cve):
     :param cve: cve to look up
     :return: string containing the full path to the cache file
     """
-    return f'{cachedir}/{source}/{cve}.json'
+    # Sanitize CVE to prevent path traversal attacks
+    # Remove any path separators and normalize
+    safe_cve = os.path.basename(cve).replace('/', '').replace('\\', '')
+    # Construct path safely using os.path.join
+    cache_path = os.path.join(cachedir, source, f'{safe_cve}.json')
+    # Normalize and resolve to absolute path to prevent traversal
+    cache_path = os.path.normpath(cache_path)
+    # Ensure the path is within the cache directory
+    cachedir_abs = os.path.abspath(cachedir)
+    cache_path_abs = os.path.abspath(cache_path)
+    if not cache_path_abs.startswith(cachedir_abs):
+        raise ValueError(f'Invalid cache path: {cache_path}')
+    return cache_path
 
 
 def get_cached(cachedir, source, cve):
@@ -71,6 +83,11 @@ def cache(cachedir, source, cve, data):
         sys.exit(1)
 
     cachefile = get_cache_path(cachedir, source, cve)
+
+    # Ensure the cache directory exists
+    # cachefile is already validated to be within cachedir, so dirname is safe
+    cache_dir = os.path.dirname(cachefile)
+    os.makedirs(cache_dir, exist_ok=True)
 
     with open(cachefile, 'w') as f:
         json.dump(data, f)
@@ -366,6 +383,19 @@ def determine_cvss_version(vex, nvd, cve):
     return '2.0'
 
 
+def normalize_markdown_code_blocks(text):
+    """
+    Normalize markdown code blocks by converting ~~~ to ```.
+    Some VEX files use ~~~ instead of the standard ``` for code blocks.
+    """
+    # Replace ~~~ with ``` at the start of lines
+    # This handles both opening (~~~python) and closing (~~~) code blocks
+    # The pattern matches ~~~ at the start of a line, optionally followed by language identifier
+    # \w* matches word characters (language identifier like 'python', 'bash', etc.)
+    text = re.sub(r'^~~~(\w*)', r'```\1', text, flags=re.MULTILINE)
+    return text
+
+
 def convert_bare_urls_to_markdown(text):
     """
     Convert bare URLs in text to markdown format for clickable links.
@@ -434,6 +464,14 @@ def create_app():
     except OSError:
         pass
 
+    # Ensure cache directories exist
+    for subdir in ['cve', 'vex', 'nvd', 'epss', 'kev']:
+        cache_subdir = os.path.join(cachedir, subdir)
+        try:
+            os.makedirs(cache_subdir, exist_ok=True)
+        except OSError:
+            pass
+
     @app.errorhandler(404)
     def page_not_found(error):
         return render_template('page_not_found.html'), 404
@@ -443,10 +481,14 @@ def create_app():
         form = FlaskForm()  # Create an empty form for CSRF
         return render_template('search.html', form=form)
 
-    @app.route('/cve', methods=['POST'])
+    @app.route('/cve', methods=['GET', 'POST'])
     def redirect_cve():
-        cve = request.form['cve']
-        return redirect(url_for('render_cve', cve=cve))
+        if request.method == 'POST':
+            cve = request.form['cve']
+            return redirect(url_for('render_cve', cve=cve))
+        else:
+            # GET request to /cve without a CVE name
+            return render_template('cve_not_found.html'), 404
 
     @app.route('/cve/<cve>')
     @cache.memoize(timeout=300)  # Cache for 5 minutes
@@ -495,20 +537,25 @@ def create_app():
         mitigation = ''
         # we just want the first one
         if len(packages.mitigation) > 0:
-            # Convert bare URLs to markdown format first, then process markdown
-            m_text     = convert_bare_urls_to_markdown(packages.mitigation[0].details)
+            # Normalize code blocks, convert bare URLs to markdown format, then process markdown
+            m_text     = normalize_markdown_code_blocks(packages.mitigation[0].details)
+            m_text     = convert_bare_urls_to_markdown(m_text)
             mitigation = markdown.markdown(m_text)
 
         statement = ''
         if 'other' in vex.notes:
             if 'Statement' in vex.notes['other']:
-                statement = markdown.markdown(convert_bare_urls_to_markdown(vex.notes['other']['Statement']))
+                s_text = normalize_markdown_code_blocks(vex.notes['other']['Statement'])
+                s_text = convert_bare_urls_to_markdown(s_text)
+                statement = markdown.markdown(s_text)
             else:
                 statement = ''
 
         if 'description' in vex.notes:
             if 'Vulnerability description' in vex.notes['description']:
-                description = markdown.markdown(convert_bare_urls_to_markdown(vex.notes['description']['Vulnerability description']))
+                d_text = normalize_markdown_code_blocks(vex.notes['description']['Vulnerability description'])
+                d_text = convert_bare_urls_to_markdown(d_text)
+                description = markdown.markdown(d_text)
             else:
                 description = ''
         else:
