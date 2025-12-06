@@ -26,7 +26,19 @@ def get_cache_path(cachedir, source, cve):
     :param cve: cve to look up
     :return: string containing the full path to the cache file
     """
-    return f'{cachedir}/{source}/{cve}.json'
+    # Sanitize CVE to prevent path traversal attacks
+    # Remove any path separators and normalize
+    safe_cve = os.path.basename(cve).replace('/', '').replace('\\', '')
+    # Construct path safely using os.path.join
+    cache_path = os.path.join(cachedir, source, f'{safe_cve}.json')
+    # Normalize and resolve to absolute path to prevent traversal
+    cache_path = os.path.normpath(cache_path)
+    # Ensure the path is within the cache directory
+    cachedir_abs = os.path.abspath(cachedir)
+    cache_path_abs = os.path.abspath(cache_path)
+    if not cache_path_abs.startswith(cachedir_abs):
+        raise ValueError(f'Invalid cache path: {cache_path}')
+    return cache_path
 
 
 def get_cached(cachedir, source, cve):
@@ -73,6 +85,7 @@ def cache(cachedir, source, cve, data):
     cachefile = get_cache_path(cachedir, source, cve)
 
     # Ensure the cache directory exists
+    # cachefile is already validated to be within cachedir, so dirname is safe
     cache_dir = os.path.dirname(cachefile)
     os.makedirs(cache_dir, exist_ok=True)
 
