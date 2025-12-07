@@ -338,26 +338,33 @@ def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
     :param NVD: NVD object class
     :param CVE: CVE object class
     :param cve_name: cve to look up
-    :return: tuple of (nvd, cve, epss) objects
+    :param vulncheck: VulnCheck API token (None if not configured)
+    :return: tuple of (nvd, cve, epss, kev) objects
         nvd: NVD object containing NVD vulnerability data
         cve: CVE object containing CVE.org data
         epss: dict containing EPSS scoring data
         kev: KEV object containing VulnCheck KEV data
     """
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    # Determine number of workers based on whether VulnCheck is enabled
+    max_workers = 4 if vulncheck else 3
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all downloads in parallel
         nvd_future = executor.submit(get_from_nvd, cachedir, NVD, cve_name)
         cve_future = executor.submit(get_from_cve, cachedir, CVE, cve_name)
         epss_future = executor.submit(get_from_epss, cachedir, cve_name)
 
+        # Submit VulnCheck KEV in parallel if configured
+        if vulncheck:
+            kev_future = executor.submit(get_from_kev, cachedir, cve_name, vulncheck)
+        else:
+            kev_future = None
+
+        # Wait for all results
         nvd = nvd_future.result()
         cve = cve_future.result()
         epss = epss_future.result()
-
-        if vulncheck:
-            kev_future = executor.submit(get_from_kev, cachedir, cve_name, vulncheck)
-            kev = kev_future.result()
-        else:
-            kev = None
+        kev = kev_future.result() if kev_future else None
         
     return nvd, cve, epss, kev
 
