@@ -272,11 +272,10 @@ def get_from_kev(cachedir, cve_name, vulncheck):
                 api_response = indices_client.index_vulncheck_kev_get(cve=cve_name)
 
                 for d in api_response.data:
-                    if d.date_added.endswith('Z'):
-                        xd = datetime.datetime.fromisoformat(d.date_added[:-1])
-                        xd = xd.replace(tzinfo=pytz.timezone('UTC'))
-                    else:
-                        xd = datetime.datetime.fromisoformat(d.date_added)
+                    # Python 3.11+ fromisoformat handles 'Z' suffix directly
+                    # Normalize 'Z' to '+00:00' for consistent parsing
+                    date_str = d.date_added.replace('Z', '+00:00') if d.date_added.endswith('Z') else d.date_added
+                    xd = datetime.datetime.fromisoformat(date_str)
                     date_added = xd.astimezone(pytz.timezone('US/Eastern')).strftime('%B %d, %Y')
                     kev = {'cve'            : d.cve[0],
                            'cwes'           : d.cwes,
@@ -339,26 +338,33 @@ def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
     :param NVD: NVD object class
     :param CVE: CVE object class
     :param cve_name: cve to look up
-    :return: tuple of (nvd, cve, epss) objects
+    :param vulncheck: VulnCheck API token (None if not configured)
+    :return: tuple of (nvd, cve, epss, kev) objects
         nvd: NVD object containing NVD vulnerability data
         cve: CVE object containing CVE.org data
         epss: dict containing EPSS scoring data
         kev: KEV object containing VulnCheck KEV data
     """
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    # Determine number of workers based on whether VulnCheck is enabled
+    max_workers = 4 if vulncheck else 3
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all downloads in parallel
         nvd_future = executor.submit(get_from_nvd, cachedir, NVD, cve_name)
         cve_future = executor.submit(get_from_cve, cachedir, CVE, cve_name)
         epss_future = executor.submit(get_from_epss, cachedir, cve_name)
 
+        # Submit VulnCheck KEV in parallel if configured
+        if vulncheck:
+            kev_future = executor.submit(get_from_kev, cachedir, cve_name, vulncheck)
+        else:
+            kev_future = None
+
+        # Wait for all results
         nvd = nvd_future.result()
         cve = cve_future.result()
         epss = epss_future.result()
-
-        if vulncheck:
-            kev_future = executor.submit(get_from_kev, cachedir, cve_name, vulncheck)
-            kev = kev_future.result()
-        else:
-            kev = None
+        kev = kev_future.result() if kev_future else None
         
     return nvd, cve, epss, kev
 
