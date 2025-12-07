@@ -272,11 +272,10 @@ def get_from_kev(cachedir, cve_name, vulncheck):
                 api_response = indices_client.index_vulncheck_kev_get(cve=cve_name)
 
                 for d in api_response.data:
-                    if d.date_added.endswith('Z'):
-                        xd = datetime.datetime.fromisoformat(d.date_added[:-1])
-                        xd = xd.replace(tzinfo=pytz.timezone('UTC'))
-                    else:
-                        xd = datetime.datetime.fromisoformat(d.date_added)
+                    # Python 3.11+ fromisoformat handles 'Z' suffix directly
+                    # Normalize 'Z' to '+00:00' for consistent parsing
+                    date_str = d.date_added.replace('Z', '+00:00') if d.date_added.endswith('Z') else d.date_added
+                    xd = datetime.datetime.fromisoformat(date_str)
                     date_added = xd.astimezone(pytz.timezone('US/Eastern')).strftime('%B %d, %Y')
                     kev = {'cve'            : d.cve[0],
                            'cwes'           : d.cwes,

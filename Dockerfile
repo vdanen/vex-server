@@ -1,5 +1,5 @@
-# Use Python 3.9 as specified in README
-FROM python:3.9
+# Use Python 3.13 for modern features and performance
+FROM python:3.13
 
 # Set working directory
 WORKDIR /app

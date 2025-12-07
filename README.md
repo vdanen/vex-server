@@ -27,8 +27,8 @@ cache directory configuration is optional.
 
 ## Running
 
-It is recommended to use python 3.9.  Later versions are not currently
-supported.
+This application requires Python 3.13 or later. Python 3.13 provides
+improved performance, security, and modern language features.
 
 To run the demo server, ensure the configured cache directory in
 `config.py` exists: `mkdir -p cache/{cve,vex,nvd,epss,kev}`
