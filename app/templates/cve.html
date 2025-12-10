@@ -48,9 +48,10 @@
 {% endif %}
 
 <div class="container">
-  <div class="row justify-content-between">
+  <div class="row justify-content-between g-3">
 
-<div class="card text-bg-{{ sevcolor }} mb-3" style="max-width: 24rem;">
+<div class="col-md-4">
+<div class="card text-bg-{{ sevcolor }} mb-3 h-100">
   <div class="row g-0">
     <div class="col-md-4">
       <br />
@@ -60,19 +61,21 @@
       <div class="card-body">
         <h5 class="card-title">{% if vex.global_impact %}<b>{{ vex.global_impact }}</b>{% else %}No{% endif %} Impact</h5>
         <p class="card-text"><button type="button" class="btn btn-sm btn-light" data-bs-toggle="popover" data-bs-title="{% if vex.global_impact %}{{ vex.global_impact }}{% else %}No{% endif %} Impact" data-bs-content="{{ popover }}"><i class="bi bi-info-circle"></i> What does this mean?</button></p>
-        <p class="card-text"><small class="text-body-secondary">Public on {{ vex.release_date }}<br />Updated: {{ vex.updated }}</small></p>
+        <p class="card-text"><small class="text-white">Public on {{ vex.release_date }}<br />Updated: {{ vex.updated }}</small></p>
       </div>
     </div>
   </div>
 </div>
+</div>
 
-<div class="card text-bg-light mb-3" style="max-width: 24rem;">
+<div class="col-md-4">
+<div class="card text-bg-light mb-3 h-100">
   <div class="row g-0">
-    <div class="col-md-3">
+    <div class="col-md-3" style="padding-left: 1rem;">
       <br /><br />
-      <h1>{% if vex.global_cvss %}<b>{{ vex.global_cvss|safe_getattr('baseScore') }}</b>{% else %}N/A{% endif %}</h1>
+      <h1 style="white-space: nowrap;">{% if vex.global_cvss %}<b>{{ vex.global_cvss|safe_getattr('baseScore') }}</b>{% else %}N/A{% endif %}</h1>
     </div>
-    <div class="col-md-9">
+    <div class="col-md-9" style="padding-left: 0.75rem;">
       <div class="card-body">
         <h5 class="card-title">CVSS</h5>
         {% if has_cvss %}
@@ -85,15 +88,17 @@
     </div>
   </div>
 </div>
+</div>
 
+<div class="col-md-4">
     {% if epss['cve'] %}
-<div class="card text-bg-light mb-3" style="max-width: 24rem;">
+<div class="card text-bg-light mb-3 h-100">
   <div class="row g-0">
-    <div class="col-md-5">
+    <div class="col-md-5" style="padding-left: 1rem;">
       <br /><br />
-      <h2>{{ epss['percent'] }}%</h2>
+      <h2 style="white-space: nowrap;">{{ epss['percent'] }}%</h2>
     </div>
-    <div class="col-md-7">
+    <div class="col-md-7" style="padding-left: 0.75rem;">
       <div class="card-body">
         <h5 class="card-title">EPSS</h5>
         <p class="card-text">EPSS Score: {{ epss['score'] }}</p>
@@ -103,13 +108,13 @@
   </div>
 </div>
     {% else %}
-<div class="card text-bg-light mb-3" style="max-width: 24rem;">
+<div class="card text-bg-light mb-3 h-100">
   <div class="row g-0">
-    <div class="col-md-5">
+    <div class="col-md-5" style="padding-left: 1rem;">
       <br /><br />
-      <h2>N/A</h2>
+      <h2 style="white-space: nowrap;">N/A</h2>
     </div>
-    <div class="col-md-7">
+    <div class="col-md-7" style="padding-left: 0.75rem;">
       <div class="card-body">
         <h5 class="card-title">EPSS</h5>
         <p class="card-text">EPSS Score: N/A</p>
@@ -119,6 +124,7 @@
   </div>
 </div>
     {% endif %}
+</div>
   </div>
 </div>
 
@@ -146,51 +152,51 @@
   <strong>Important note.</strong> CVSS scores for open source components depend on vendor-specific factors (e.g. version or build chain). Therefore, Red Hat's score and impact rating can be different from NVD and other vendors. Red Hat remains the authoritative <a href="https://www.cve.org/ProgramOrganization/CNAs">CVE Naming Authority (CNA)</a> source for its products and services (see <a href="https://access.redhat.com/security/updates/classification#cvss">Red Hat classifications</a>).
 </div>
 {% if vex.global_cvss %}
-<table class="table table-bordered table-striped table-hover">
+<table class="table table-bordered table-striped table-hover cvss-table">
   <thead>
-  <tr class="table-success"><th> </th><th>Red Hat</th><th>National Vulnerability Database</th><th>CVE.org ADP</th></tr>
+  <tr class="table-success"><th style="width: 20%;"> </th><th style="width: 26.67%;">Red Hat</th><th style="width: 26.67%;">National Vulnerability Database</th><th style="width: 26.67%;">CVE.org ADP</th></tr>
   </thead>
   <tbody>
-  <tr><td>Base Score</td><td>{{ vex.global_cvss|safe_getattr('baseScore') }}</td><td>{{ nvd.baseScore }}</td><td>{{ cve.baseScore }}</td></tr>
-  <tr><td>Base Vector</td><td>{{ vex.global_cvss|safe_getattr('vectorString') }}</td><td>{{ nvd.vectorString }}</td><td>{{ cve.vectorString }}</td></tr>
+  <tr><td><strong>Base Score</strong></td><td>{{ vex.global_cvss|safe_getattr('baseScore') }}</td><td>{{ nvd.baseScore }}</td><td>{{ cve.baseScore }}</td></tr>
+  <tr><td><strong>Base Vector</strong></td><td>{{ vex.global_cvss|safe_getattr('vectorString') }}</td><td>{{ nvd.vectorString }}</td><td>{{ cve.vectorString }}</td></tr>
   {% if (cvssVersion == '3.0' or cvssVersion == '3.1') %}
-  <tr><td>Attack Vector</td><td>{{ safe_cvss_attr(vex.global_cvss, 'attackVector') }}</td><td>{{ nvd.attackVector }}</td><td>{{ cve.attackVector }}</td></tr>
-  <tr><td>Attack Complexity</td><td>{{ safe_cvss_attr(vex.global_cvss, 'attackComplexity') }}</td><td>{{ nvd.attackComplexity }}</td><td>{{ cve.attackComplexity }}</td></tr>
-  <tr><td>Privileges Required</td><td>{{ safe_cvss_attr(vex.global_cvss, 'privilegesRequired') }}</td><td>{{ nvd.privilegesRequired }}</td><td>{{ cve.privilegesRequired }}</td></tr>
-  <tr><td>User Interaction</td><td>{{ safe_cvss_attr(vex.global_cvss, 'userInteraction') }}</td><td>{{ nvd.userInteraction }}</td><td>{{ cve.userInteraction }}</td></tr>
-  <tr><td>Scope</td><td>{{ safe_cvss_attr(vex.global_cvss, 'scope') }}</td><td>{{ nvd.scope }}</td><td>{{ cve.scope }}</td></tr>
+  <tr><td><strong>Attack Vector</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'attackVector') }}</td><td>{{ nvd.attackVector }}</td><td>{{ cve.attackVector }}</td></tr>
+  <tr><td><strong>Attack Complexity</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'attackComplexity') }}</td><td>{{ nvd.attackComplexity }}</td><td>{{ cve.attackComplexity }}</td></tr>
+  <tr><td><strong>Privileges Required</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'privilegesRequired') }}</td><td>{{ nvd.privilegesRequired }}</td><td>{{ cve.privilegesRequired }}</td></tr>
+  <tr><td><strong>User Interaction</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'userInteraction') }}</td><td>{{ nvd.userInteraction }}</td><td>{{ cve.userInteraction }}</td></tr>
+  <tr><td><strong>Scope</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'scope') }}</td><td>{{ nvd.scope }}</td><td>{{ cve.scope }}</td></tr>
   {% elif cvssVersion == '2.0' %}
-  <tr><td>Access Vector</td><td>{{ safe_cvss_attr(vex.global_cvss, 'accessVector') }}</td><td>{{ nvd.accessVector }}</td><td>{{ cve.accessVector }}</td></tr>
-  <tr><td>Access Complexity</td><td>{{ safe_cvss_attr(vex.global_cvss, 'accessComplexity') }}</td><td>{{ nvd.accessComplexity }}</td><td>{{ cve.accessComplexity }}</td></tr>
-  <tr><td>Authentication</td><td>{{ safe_cvss_attr(vex.global_cvss, 'authentication') }}</td><td>{{ nvd.authentication }}</td><td>{{ cve.authentication }}</td></tr>
+  <tr><td><strong>Access Vector</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'accessVector') }}</td><td>{{ nvd.accessVector }}</td><td>{{ cve.accessVector }}</td></tr>
+  <tr><td><strong>Access Complexity</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'accessComplexity') }}</td><td>{{ nvd.accessComplexity }}</td><td>{{ cve.accessComplexity }}</td></tr>
+  <tr><td><strong>Authentication</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'authentication') }}</td><td>{{ nvd.authentication }}</td><td>{{ cve.authentication }}</td></tr>
   {% endif %}
-  <tr><td>Confidentiality Impact</td><td>{{ safe_cvss_attr(vex.global_cvss, 'confidentialityImpact') }}</td><td>{{ nvd.confidentialityImpact }}</td><td>{{ cve.confidentialityImpact }}</td></tr>
-  <tr><td>Integrity Impact</td><td>{{ safe_cvss_attr(vex.global_cvss, 'integrityImpact') }}</td><td>{{ nvd.integrityImpact }}</td><td>{{ cve.integrityImpact }}</td></tr>
-  <tr><td>Availability Impact</td><td>{{ safe_cvss_attr(vex.global_cvss, 'availabilityImpact') }}</td><td>{{ nvd.availabilityImpact }}</td><td>{{ cve.availabilityImpact }}</td></tr>
+  <tr><td><strong>Confidentiality Impact</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'confidentialityImpact') }}</td><td>{{ nvd.confidentialityImpact }}</td><td>{{ cve.confidentialityImpact }}</td></tr>
+  <tr><td><strong>Integrity Impact</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'integrityImpact') }}</td><td>{{ nvd.integrityImpact }}</td><td>{{ cve.integrityImpact }}</td></tr>
+  <tr><td><strong>Availability Impact</strong></td><td>{{ safe_cvss_attr(vex.global_cvss, 'availabilityImpact') }}</td><td>{{ nvd.availabilityImpact }}</td><td>{{ cve.availabilityImpact }}</td></tr>
   </tbody>
 </table>
 {% else %}
-<table class="table table-bordered table-striped table-hover">
+<table class="table table-bordered table-striped table-hover cvss-table">
   <thead>
-  <tr class="table-success"><th> </th><th>Red Hat</th><th>National Vulnerability Database</th><th>CVE.org ADP</th></tr>
+  <tr class="table-success"><th style="width: 20%;"> </th><th style="width: 26.67%;">Red Hat</th><th style="width: 26.67%;">National Vulnerability Database</th><th style="width: 26.67%;">CVE.org ADP</th></tr>
   </thead>
   <tbody>
-  <tr><td>Base Score</td><td>N/A</td><td>{{ nvd.baseScore }}</td><td>{{ cve.baseScore }}</td></tr>
-  <tr><td>Base Vector</td><td>N/A</td><td>{{ nvd.vectorString }}</td><td>{{ cve.vectorString }}</td></tr>
+  <tr><td><strong>Base Score</strong></td><td>N/A</td><td>{{ nvd.baseScore }}</td><td>{{ cve.baseScore }}</td></tr>
+  <tr><td><strong>Base Vector</strong></td><td>N/A</td><td>{{ nvd.vectorString }}</td><td>{{ cve.vectorString }}</td></tr>
   {% if (cvssVersion == '3.0' or cvssVersion == '3.1') %}
-  <tr><td>Attack Vector</td><td>N/A</td><td>{{ nvd.attackVector }}</td><td>{{ cve.attackVector }}</td></tr>
-  <tr><td>Attack Complexity</td><td>N/A</td><td>{{ nvd.attackComplexity }}</td><td>{{ cve.attackComplexity }}</td></tr>
-  <tr><td>Privileges Required</td><td>N/A</td><td>{{ nvd.privilegesRequired }}</td><td>{{ cve.privilegesRequired }}</td></tr>
-  <tr><td>User Interaction</td><td>N/A</td><td>{{ nvd.userInteraction }}</td><td>{{ cve.userInteraction }}</td></tr>
-  <tr><td>Scope</td><td>N/A</td><td>{{ nvd.scope }}</td><td>{{ cve.scope }}</td></tr>
+  <tr><td><strong>Attack Vector</strong></td><td>N/A</td><td>{{ nvd.attackVector }}</td><td>{{ cve.attackVector }}</td></tr>
+  <tr><td><strong>Attack Complexity</strong></td><td>N/A</td><td>{{ nvd.attackComplexity }}</td><td>{{ cve.attackComplexity }}</td></tr>
+  <tr><td><strong>Privileges Required</strong></td><td>N/A</td><td>{{ nvd.privilegesRequired }}</td><td>{{ cve.privilegesRequired }}</td></tr>
+  <tr><td><strong>User Interaction</strong></td><td>N/A</td><td>{{ nvd.userInteraction }}</td><td>{{ cve.userInteraction }}</td></tr>
+  <tr><td><strong>Scope</strong></td><td>N/A</td><td>{{ nvd.scope }}</td><td>{{ cve.scope }}</td></tr>
   {% elif cvssVersion == '2.0' %}
-  <tr><td>Access Vector</td><td>N/A</td><td>{{ nvd.accessVector }}</td><td>{{ cve.accessVector }}</td></tr>
-  <tr><td>Access Complexity</td><td>N/A</td><td>{{ nvd.accessComplexity }}</td><td>{{ cve.accessComplexity }}</td></tr>
-  <tr><td>Authentication</td><td>N/A</td><td>{{ nvd.authentication }}</td><td>{{ cve.authentication }}</td></tr>
+  <tr><td><strong>Access Vector</strong></td><td>N/A</td><td>{{ nvd.accessVector }}</td><td>{{ cve.accessVector }}</td></tr>
+  <tr><td><strong>Access Complexity</strong></td><td>N/A</td><td>{{ nvd.accessComplexity }}</td><td>{{ cve.accessComplexity }}</td></tr>
+  <tr><td><strong>Authentication</strong></td><td>N/A</td><td>{{ nvd.authentication }}</td><td>{{ cve.authentication }}</td></tr>
   {% endif %}
-  <tr><td>Confidentiality Impact</td><td>N/A</td><td>{{ nvd.confidentialityImpact }}</td><td>{{ cve.confidentialityImpact }}</td></tr>
-  <tr><td>Integrity Impact</td><td>N/A</td><td>{{ nvd.integrityImpact }}</td><td>{{ cve.integrityImpact }}</td></tr>
-  <tr><td>Availability Impact</td><td>N/A</td><td>{{ nvd.availabilityImpact }}</td><td>{{ cve.availabilityImpact }}</td></tr>
+  <tr><td><strong>Confidentiality Impact</strong></td><td>N/A</td><td>{{ nvd.confidentialityImpact }}</td><td>{{ cve.confidentialityImpact }}</td></tr>
+  <tr><td><strong>Integrity Impact</strong></td><td>N/A</td><td>{{ nvd.integrityImpact }}</td><td>{{ cve.integrityImpact }}</td></tr>
+  <tr><td><strong>Availability Impact</strong></td><td>N/A</td><td>{{ nvd.availabilityImpact }}</td><td>{{ cve.availabilityImpact }}</td></tr>
   </tbody>
 </table>
 {% endif %}
@@ -274,7 +280,7 @@
 
   <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
         Why is Red Hat's CVSS v3 score or Impact different from other vendors?
       </button>
     </h2>
@@ -289,7 +295,7 @@
 
     <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
         What is EPSS?
       </button>
     </h2>
@@ -304,7 +310,7 @@
 
   <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
         My product is listed as "Under investigation" or "Affected", when will Red Hat release a fix for this vulnerability?
       </button>
     </h2>
@@ -320,7 +326,7 @@
 
     <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="true" aria-controls="collapseFour">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
         What can I do if my product is listed as "Will not fix"?
       </button>
     </h2>
@@ -339,7 +345,7 @@
 
   <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="true" aria-controls="collapseFive">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
         What can I do if my product is listed as "Fix deferred"?
       </button>
     </h2>
@@ -358,7 +364,7 @@
 
     <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="true" aria-controls="collapseSix">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
         What is a mitigation?
       </button>
     </h2>
@@ -371,7 +377,7 @@
 
   <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="true" aria-controls="collapseSeven">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
         I have a Red Hat product but it is not in the above list, is it affected?
       </button>
     </h2>
@@ -384,7 +390,7 @@
 
   <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="true" aria-controls="collapseEight">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="false" aria-controls="collapseEight">
         Why is my security scanner reporting my product is vulnerable to this vulnerability even though my product version is fixed or not affected?
       </button>
     </h2>
@@ -397,7 +403,7 @@
 
   <div class="accordion-item">
     <h2 class="accordion-header">
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNine" aria-expanded="true" aria-controls="collapseNine">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNine" aria-expanded="false" aria-controls="collapseNine">
         My product is listed as "Out of Support Scope". What does this mean?
       </button>
     </h2>
