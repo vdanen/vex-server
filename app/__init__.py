@@ -1,21 +1,21 @@
 import datetime
 import re
-from werkzeug.middleware.proxy_fix import ProxyFix
-from flask import Flask, render_template, request, redirect, url_for
 import json
 import os
 import pytz
-import requests
 import sys
 import time
+import asyncio
 import vulncheck_sdk
 import markdown
-from flask_wtf.csrf import CSRFProtect
-from flask_wtf import FlaskForm
-from concurrent.futures import ThreadPoolExecutor
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-from flask_caching import Cache
+from functools import lru_cache
+from fastapi import FastAPI, Request, Form, HTTPException, status
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+import httpx
 
 
 def get_cache_path(cachedir, source, cve):
@@ -105,12 +105,13 @@ def validate_cve_id(cve_id):
     return bool(cve_pattern.match(cve_id))
 
 
-def get_from_nvd(cachedir, NVD, cve_name):
+async def get_from_nvd(cachedir, NVD, cve_name, client: httpx.AsyncClient):
     """
     Get details from NVD for this CVE and return it as a simple NVD object
     :param cachedir: directory of the cache
     :param NVD: NVD object
     :param cve_name: cve to look up
+    :param client: httpx async client
     :return: NVD object
     """
     cached = get_cached(cachedir,'nvd', cve_name)
@@ -118,9 +119,9 @@ def get_from_nvd(cachedir, NVD, cve_name):
         nvd = NVD(cached)
     else:
         try:
-            response = requests.get(
+            response = await client.get(
                 f'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_name}',
-                timeout=10  # Add timeout
+                timeout=10.0
             )
             if response.status_code != 200:
                 return NVD(None)
@@ -136,18 +137,19 @@ def get_from_nvd(cachedir, NVD, cve_name):
                     nvd = NVD(None)
             else:
                 nvd = NVD(None)
-        except requests.exceptions.Timeout:
+        except (httpx.TimeoutException, httpx.RequestError):
             return NVD(None)
 
     return nvd
 
 
-def get_from_cve(cachedir, CVE, cve_name):
+async def get_from_cve(cachedir, CVE, cve_name, client: httpx.AsyncClient):
     """
     Get details from CVE.org for this CVE and return it as a simple CVE object
     :param cachedir: directory of the cache
     :param CVE: CVE object
     :param cve_name: cve to look up
+    :param client: httpx async client
     :return: CVE object
     """
     cached = get_cached(cachedir, 'cve', cve_name)
@@ -155,9 +157,9 @@ def get_from_cve(cachedir, CVE, cve_name):
         cve = CVE(cached)
     else:
         try:
-            response = requests.get(
+            response = await client.get(
                 f'https://cveawg.mitre.org/api/cve/{cve_name}',
-                timeout=10
+                timeout=10.0
             )
             if response.status_code != 200:
                 return CVE(None)
@@ -173,18 +175,19 @@ def get_from_cve(cachedir, CVE, cve_name):
                     cve = CVE(None)
             else:
                 cve = CVE(None)
-        except requests.exceptions.Timeout:
+        except (httpx.TimeoutException, httpx.RequestError):
             return CVE(None)
 
     return cve
 
 
-def get_from_redhat(cachedir, Vex, cve_name):
+async def get_from_redhat(cachedir, Vex, cve_name, client: httpx.AsyncClient):
     """
     Get details from Red Hat for this CVE and return it as a Vex object
     :param cachedir: directory of the cache
     :param Vex: Vex object
     :param cve_name: cve to look up
+    :param client: httpx async client
     :return: Vex object
     """
     cached = get_cached(cachedir,'vex', cve_name)
@@ -194,9 +197,9 @@ def get_from_redhat(cachedir, Vex, cve_name):
         try:
             # Red Hat uses year-based subdirectories
             year     = cve_name[4:8]
-            response = requests.get(
+            response = await client.get(
                 f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve_name.lower()}.json',
-                timeout=10
+                timeout=10.0
             )
             if response.status_code != 200:
                 return None
@@ -204,17 +207,18 @@ def get_from_redhat(cachedir, Vex, cve_name):
             vex_cve = response.json()
             vex     = Vex(vex_cve)
             cache(cachedir, 'vex', cve_name, vex_cve)
-        except requests.exceptions.Timeout:
+        except (httpx.TimeoutException, httpx.RequestError):
             return None
 
     return vex
 
 
-def get_from_epss(cachedir, cve_name):
+async def get_from_epss(cachedir, cve_name, client: httpx.AsyncClient):
     """
     Get details from FIRST EPSS for this CVE and return it as an epss dict
     :param cachedir: directory of the cache
     :param cve_name: cve to look up
+    :param client: httpx async client
     :return: dict
     """
     cached = get_cached(cachedir, 'epss', cve_name)
@@ -222,9 +226,9 @@ def get_from_epss(cachedir, cve_name):
         epss = cached
     else:
         try:
-            response = requests.get(
+            response = await client.get(
                 f'https://api.first.org/data/v1/epss?cve={cve_name}',
-                timeout=10
+                timeout=10.0
             )
             if response.status_code != 200:
                 return None
@@ -244,7 +248,7 @@ def get_from_epss(cachedir, cve_name):
                     epss = None
             else:
                 epss = None
-        except requests.exceptions.Timeout:
+        except (httpx.TimeoutException, httpx.RequestError):
             return None
 
     return epss
@@ -253,8 +257,10 @@ def get_from_epss(cachedir, cve_name):
 def get_from_kev(cachedir, cve_name, vulncheck):
     """
     Get details from VulnCheck KEV for this CVE and return it as a kev dict
+    Note: This function is synchronous because vulncheck_sdk is synchronous
     :param cachedir: directory of the cache
     :param cve_name: cve to look up
+    :param vulncheck: VulnCheck API token
     :return: dict
     """
     cached = get_cached(cachedir, 'kev', cve_name)
@@ -308,29 +314,7 @@ def fix_delta(release, pkgs):
     return deltas
 
 
-csrf = CSRFProtect()
-
-def create_session():
-    """
-    Create a requests Session with retry logic and connection pooling
-    :return: configured requests.Session object with:
-        - 3 retries with exponential backoff
-        - Connection pooling (10 connections)
-        - Automatic retries on 500-level errors
-    """
-    session = requests.Session()
-    retry = Retry(
-        total=3,
-        backoff_factor=0.5,
-        status_forcelist=[500, 502, 503, 504]
-    )
-    adapter = HTTPAdapter(max_retries=retry, pool_connections=10, pool_maxsize=10)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
-    return session
-
-
-def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
+async def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
     """
     Get all external data concurrently from NVD, CVE.org, EPSS and VulnCheck KEV
     :param cachedir: directory of the cache
@@ -345,26 +329,28 @@ def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
         epss: dict containing EPSS scoring data
         kev: KEV object containing VulnCheck KEV data
     """
-    # Determine number of workers based on whether VulnCheck is enabled
-    max_workers = 4 if vulncheck else 3
+    # Create a shared httpx client for async requests
+    async with httpx.AsyncClient() as client:
+        # Run all async requests concurrently
+        tasks = [
+            get_from_nvd(cachedir, NVD, cve_name, client),
+            get_from_cve(cachedir, CVE, cve_name, client),
+            get_from_epss(cachedir, cve_name, client),
+        ]
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all downloads in parallel
-        nvd_future = executor.submit(get_from_nvd, cachedir, NVD, cve_name)
-        cve_future = executor.submit(get_from_cve, cachedir, CVE, cve_name)
-        epss_future = executor.submit(get_from_epss, cachedir, cve_name)
-
-        # Submit VulnCheck KEV in parallel if configured
+        # Add VulnCheck KEV if configured (note: this is still sync, so run in executor)
         if vulncheck:
-            kev_future = executor.submit(get_from_kev, cachedir, cve_name, vulncheck)
+            loop = asyncio.get_event_loop()
+            kev_task = loop.run_in_executor(None, get_from_kev, cachedir, cve_name, vulncheck)
+            tasks.append(kev_task)
         else:
-            kev_future = None
+            # Create a coroutine that returns None
+            async def get_none():
+                return None
+            tasks.append(get_none())
 
-        # Wait for all results
-        nvd = nvd_future.result()
-        cve = cve_future.result()
-        epss = epss_future.result()
-        kev = kev_future.result() if kev_future else None
+        results = await asyncio.gather(*tasks)
+        nvd, cve, epss, kev = results
         
     return nvd, cve, epss, kev
 
@@ -451,55 +437,76 @@ def convert_bare_urls_to_markdown(text):
     return re.sub(url_pattern, replace_url, text)
 
 
+class ProxyFixMiddleware(BaseHTTPMiddleware):
+    """Middleware to fix proxy headers (similar to Werkzeug ProxyFix)"""
+    def __init__(self, app, x_for=1, x_proto=1):
+        super().__init__(app)
+        self.x_for = x_for
+        self.x_proto = x_proto
+
+    async def dispatch(self, request: Request, call_next):
+        # Get the real IP from X-Forwarded-For header
+        if self.x_for:
+            forwarded_for = request.headers.get("X-Forwarded-For")
+            if forwarded_for:
+                # Take the first IP (client IP)
+                client_ip = forwarded_for.split(",")[0].strip()
+                request.scope["client"] = (client_ip, request.scope["client"][1])
+
+        # Get the real protocol from X-Forwarded-Proto header
+        if self.x_proto:
+            forwarded_proto = request.headers.get("X-Forwarded-Proto")
+            if forwarded_proto:
+                request.scope["scheme"] = forwarded_proto
+
+        response = await call_next(request)
+        return response
+
+
 def create_app():
     """
-    Create and configure the Flask application
-    :return: configured Flask application with:
-        - CSRF protection
-        - Proxy fix for security headers
-        - Template extensions
-        - Cache configuration
+    Create and configure the FastAPI application
+    :return: configured FastAPI application with:
+        - Template rendering
+        - Static file serving
         - Error handlers
         - Route handlers
     """
-    app = Flask(__name__, instance_relative_config=True)
-    app.session = create_session()  # Create a shared session
+    # Determine instance path
+    instance_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'instance')
 
-    # Update cache configuration to use full path
-    cache = Cache(app, config={
-        'CACHE_TYPE': 'flask_caching.backends.SimpleCache',
-        'CACHE_DEFAULT_TIMEOUT': 300
-    })
+    app = FastAPI()
 
-    # Load config first
-    app.config.from_pyfile('config.py')
+    # Load config
+    config_path = os.path.join(instance_path, 'config.py')
+    config = {}
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            exec(compile(f.read(), config_path, 'exec'), config)
 
     # Ensure we have a secret key
-    if not app.config.get('SECRET_KEY'):
+    if 'SECRET_KEY' not in config:
         raise RuntimeError(
             'No SECRET_KEY set. Please add SECRET_KEY to instance/config.py'
         )
 
     # enable vulncheck KEV if we have a token
-    vulncheck = app.config.get('VULNCHECK_API_TOKEN')
+    vulncheck = config.get('VULNCHECK_API_TOKEN')
 
-    csrf.init_app(app)
+    cachedir = config.get('CACHE_DIRECTORY', os.path.join(instance_path, 'cache'))
+    beacon = config.get('CLOUDFLARE_BEACON', None)
 
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
-
-    cachedir = app.config['CACHE_DIRECTORY']
-    beacon   = None if 'CLOUDFLARE_BEACON' not in app.config  else app.config['CLOUDFLARE_BEACON']
-    if app.config['TESTING']:
+    if config.get('TESTING', False):
         # for local development on pre-release vex-reader
         import sys
-        sys.path.append(app.config['OVERRIDE_VEX_READER'])
+        sys.path.append(config.get('OVERRIDE_VEX_READER', ''))
         beacon = None
 
     # we can only import vex after we know whether we're in testing mode or not
     from vex import Vex, VexPackages, NVD, CVE
 
     try:
-        os.makedirs(app.instance_path)
+        os.makedirs(instance_path)
     except OSError:
         pass
 
@@ -511,67 +518,89 @@ def create_app():
         except OSError:
             pass
 
-    @app.template_filter('safe_getattr')
+    # Setup templates and static files
+    templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), 'templates'))
+    app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), 'static')), name="static")
+
+    # Add template filter
     def safe_getattr_filter(obj, attr, default='N/A'):
-        """
-        Safely get an attribute from an object, returning default if attribute doesn't exist
-        :param obj: object to get attribute from
-        :param attr: attribute name to get
-        :param default: default value to return if attribute doesn't exist
-        :return: attribute value or default
-        """
+        """Safely get an attribute from an object"""
         if obj is None:
             return default
         return getattr(obj, attr, default)
 
-    @app.errorhandler(404)
-    def page_not_found(error):
-        return render_template('page_not_found.html'), 404
+    templates.env.filters['safe_getattr'] = safe_getattr_filter
 
-    @app.route('/')
-    def home():
-        form = FlaskForm()  # Create an empty form for CSRF
-        return render_template('search.html', form=form)
+    # Add url_path_for function to template globals for URL generation
+    def url_path_for(route_name: str, **path_params):
+        """Generate URL for a route (FastAPI equivalent of Flask's url_for)"""
+        # Map route names to paths
+        route_map = {
+            'redirect_cve': '/cve',
+            'home': '/',
+        }
+        path = route_map.get(route_name, '/')
+        # Add path parameters if any
+        if path_params:
+            # For simple cases, just append to path
+            # For more complex cases, you'd need to use FastAPI's url_path_for
+            pass
+        return path
 
-    @app.route('/cve', methods=['GET', 'POST'])
-    def redirect_cve():
-        if request.method == 'POST':
-            cve = request.form['cve']
-            return redirect(url_for('render_cve', cve=cve))
-        else:
-            # GET request to /cve without a CVE name
-            return render_template('cve_not_found.html'), 404
+    templates.env.globals['url_path_for'] = url_path_for
 
-    @app.route('/cve/<cve>')
-    @cache.memoize(timeout=300)  # Cache for 5 minutes
-    def render_cve(cve=None):
-        if not cve:
-            return render_template('cve_not_found.html'), 404
+    # Add proxy fix middleware
+    app.add_middleware(ProxyFixMiddleware, x_for=1, x_proto=1)
+
+    @app.exception_handler(404)
+    async def page_not_found(request: Request, exc):
+        return templates.TemplateResponse("page_not_found.html", {"request": request}, status_code=404)
+
+    @app.get("/", response_class=HTMLResponse)
+    async def home(request: Request):
+        return templates.TemplateResponse("search.html", {"request": request})
+
+    @app.post("/cve")
+    async def redirect_cve_post(request: Request, cve: str = Form(...)):
+        return RedirectResponse(url=f"/cve/{cve}", status_code=status.HTTP_302_FOUND)
+
+    @app.get("/cve", response_class=HTMLResponse)
+    async def redirect_cve_get(request: Request):
+        return templates.TemplateResponse("cve_not_found.html", {"request": request}, status_code=404)
+
+    @app.get("/cve/{cve}", response_class=HTMLResponse)
+    async def render_cve(request: Request, cve: str):
+        # Note: For production, consider adding response caching with a proper solution
 
         if not validate_cve_id(cve):
-            return render_template('cve_not_valid.html', cve=cve), 404
+            response = templates.TemplateResponse("cve_not_valid.html", {"request": request, "cve": cve}, status_code=404)
+            return response
 
-        vex = get_from_redhat(cachedir, Vex, cve)
+        # Create httpx client for Red Hat request
+        async with httpx.AsyncClient() as client:
+            vex = await get_from_redhat(cachedir, Vex, cve, client)
+
         if not vex:
-            return render_template('cve_not_found.html', cve=cve), 404
-        
+            response = templates.TemplateResponse("cve_not_found.html", {"request": request, "cve": cve}, status_code=404)
+            return response
+
         packages = VexPackages(vex.raw)
-        nvd, cve, epss, kev = get_all_data(cachedir, Vex, NVD, CVE, vex.cve, vulncheck)
+        nvd, cve_obj, epss, kev = await get_all_data(cachedir, Vex, NVD, CVE, vex.cve, vulncheck)
 
         # Check if CVSS data exists before determining version
-        has_cvss = has_cvss_data(vex, nvd, cve)
-        cvssVersion = determine_cvss_version(vex, nvd, cve)
+        has_cvss = has_cvss_data(vex, nvd, cve_obj)
+        cvssVersion = determine_cvss_version(vex, nvd, cve_obj)
         
         # Apply CVSS version
         if cvssVersion == '3.1':
             nvd = nvd.cvss31 if nvd.cvss31.version else nvd.cvss30
-            cve = cve.cvss31 if cve.cvss31.version else cve.cvss30
+            cve_obj = cve_obj.cvss31 if cve_obj.cvss31.version else cve_obj.cvss30
         elif cvssVersion == '3.0':
             nvd = nvd.cvss30
-            cve = cve.cvss30
+            cve_obj = cve_obj.cvss30
         else:  # 2.0
             nvd = nvd.cvss20
-            cve = cve.cvss20
+            cve_obj = cve_obj.cvss20
 
         fixdeltas = fix_delta(vex.release_date, packages)
 
@@ -615,10 +644,26 @@ def create_app():
         else:
             description = ''
 
-        return render_template('cve.html', vex=vex, nvd=nvd, cve=cve, epss=epss,
-                               cvssVersion=cvssVersion, has_cvss=has_cvss, fixdeltas=fixdeltas, beacon=beacon, kev=kev,
-                               fixes=packages.fixes, not_affected=not_affected,
-                               wontfix=packages.wontfix, affected=packages.affected,
-                               mitigation=mitigation, statement=statement, description=description)
+        context = {
+            "request": request,
+            "vex": vex,
+            "nvd": nvd,
+            "cve": cve_obj,
+            "epss": epss,
+            "cvssVersion": cvssVersion,
+            "has_cvss": has_cvss,
+            "fixdeltas": fixdeltas,
+            "beacon": beacon,
+            "kev": kev,
+            "fixes": packages.fixes,
+            "not_affected": not_affected,
+            "wontfix": packages.wontfix,
+            "affected": packages.affected,
+            "mitigation": mitigation,
+            "statement": statement,
+            "description": description
+        }
+
+        return templates.TemplateResponse("cve.html", context)
 
     return app

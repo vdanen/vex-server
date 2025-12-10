@@ -28,11 +28,9 @@ RUN mkdir -p instance
 EXPOSE 8080
 
 # Set environment variables
-ENV FLASK_APP=flask_app.py
 ENV PYTHONUNBUFFERED=1
 
-# Default command - can be overridden
-# Using gthread worker instead of gevent to avoid build issues
-# gthread is built into gunicorn and provides good concurrency
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "--access-logfile", "-", "--timeout", "90", "-k", "gthread", "--threads", "2", "app:create_app()"]
+# Default command - using uvicorn for FastAPI
+# Uvicorn with multiple workers provides excellent performance
+CMD ["uvicorn", "fastapi_app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "4"]
 

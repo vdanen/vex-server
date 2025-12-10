@@ -10,7 +10,6 @@ services:
       # Mount instance directory for config
       - ./instance:/app/instance
     environment:
-      - FLASK_APP=flask_app.py
       - PYTHONUNBUFFERED=1
     restart: unless-stopped
     healthcheck:

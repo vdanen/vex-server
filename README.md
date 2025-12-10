@@ -12,7 +12,7 @@ API and the Red Hat VEX files that are located at
 https://access.redhat.com/security/data/csaf/v2/vex/2024/
 
 It uses my [vex-reader](https://pypi.org/project/vex-reader/) Python module
-and shows CVE pages for Red Hat VEX documents using the Flask framework.
+and shows CVE pages for Red Hat VEX documents using the FastAPI framework.
 
 Fundamentally, the vex-reader Python module is used to read VEX data from
 Red Hat.  It will also obtain data on vulnerabilities from NVD, CVE.org,
@@ -36,8 +36,9 @@ To run the demo server, ensure the configured cache directory in
 Create a virtual environment: `python -m venv .venv`.  Install the required
 dependencies with `pip install -r requirements.txt`.
 
-Start the demo server by running `sh gunicorn-start.sh`.  This will start
-the gunicorn server listening on the localhost.
+Start the demo server by running `sh uvicorn-start.sh`.  This will start
+the uvicorn server listening on the localhost.  Alternatively, you can use
+`uvicorn fastapi_app:app --host 127.0.0.1 --port 5000` directly.
 
 ## Reporting bugs
 Use GitHub issues to file any bugs.  You can also [report security
