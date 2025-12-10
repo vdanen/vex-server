@@ -5,6 +5,13 @@
 {% endblock %}
 
 {% block content %}
+<p>This is a demo/proof of concept for parsing Red Hat VEX documents and displaying the data in a user-friendly way.
+  It uses live Red Hat VEX documents as well as realtime lookups from NVD, CVE, FIRST EPSS, and VulnCheck.
+  This is not a replacement for Red Hat's <a href="https://access.redhat.com/security/security-updates/cve/">CVE pages</a>.  The source code for this demo lives at
+  on GitHub at <a href="https://github.com/vdanen/vex-server">https://github.com/vdanen/vex-server</a> and you can use it yourself however you like.
+  If you have any questions or feedback, please feel free to reach out to me on X at <a href="https://x.com/vdanen">https://x.com/vdanen</a>.
+</p>
+
 <form method="post" action="/cve" class="mt-3">
     <div class="mb-3">
         <label for="cve" class="form-label">CVE</label>
