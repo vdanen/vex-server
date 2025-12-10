@@ -369,6 +369,35 @@ def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
     return nvd, cve, epss, kev
 
 
+def has_cvss_data(vex, nvd, cve):
+    """
+    Check if any CVSS data is available from any source
+    :param vex: Vex object containing vulnerability data
+    :param nvd: NVD object containing NVD vulnerability data
+    :param cve: CVE object containing CVE.org data
+    :return: bool indicating if CVSS data exists
+    """
+    # Check Red Hat VEX CVSS data
+    if vex.global_cvss and hasattr(vex.global_cvss, 'baseScore') and vex.global_cvss.baseScore:
+        return True
+
+    # Check NVD and CVE CVSS data (check version attribute which indicates CVSS data exists)
+    if hasattr(nvd, 'cvss31') and hasattr(nvd.cvss31, 'version') and nvd.cvss31.version:
+        return True
+    if hasattr(cve, 'cvss31') and hasattr(cve.cvss31, 'version') and cve.cvss31.version:
+        return True
+    if hasattr(nvd, 'cvss30') and hasattr(nvd.cvss30, 'version') and nvd.cvss30.version:
+        return True
+    if hasattr(cve, 'cvss30') and hasattr(cve.cvss30, 'version') and cve.cvss30.version:
+        return True
+    if hasattr(nvd, 'cvss20') and hasattr(nvd.cvss20, 'version') and nvd.cvss20.version:
+        return True
+    if hasattr(cve, 'cvss20') and hasattr(cve.cvss20, 'version') and cve.cvss20.version:
+        return True
+
+    return False
+
+
 def determine_cvss_version(vex, nvd, cve):
     """
     Determine which CVSS version to use based on available data
@@ -377,7 +406,7 @@ def determine_cvss_version(vex, nvd, cve):
     :param cve: CVE object containing CVE.org data
     :return: string indicating CVSS version ('3.1', '3.0', or '2.0')
     """
-    if vex.global_cvss.version:
+    if vex.global_cvss and hasattr(vex.global_cvss, 'version') and vex.global_cvss.version:
         return vex.global_cvss.version
         
     if nvd.cvss31.version or cve.cvss31.version:
@@ -386,7 +415,11 @@ def determine_cvss_version(vex, nvd, cve):
     if nvd.cvss30.version or cve.cvss30.version:
         return '3.0'
         
-    return '2.0'
+    if nvd.cvss20.version or cve.cvss20.version:
+        return '2.0'
+
+    # Default to 3.1 if no CVSS data is found
+    return '3.1'
 
 
 def normalize_markdown_code_blocks(text):
@@ -478,6 +511,19 @@ def create_app():
         except OSError:
             pass
 
+    @app.template_filter('safe_getattr')
+    def safe_getattr_filter(obj, attr, default='N/A'):
+        """
+        Safely get an attribute from an object, returning default if attribute doesn't exist
+        :param obj: object to get attribute from
+        :param attr: attribute name to get
+        :param default: default value to return if attribute doesn't exist
+        :return: attribute value or default
+        """
+        if obj is None:
+            return default
+        return getattr(obj, attr, default)
+
     @app.errorhandler(404)
     def page_not_found(error):
         return render_template('page_not_found.html'), 404
@@ -512,6 +558,8 @@ def create_app():
         packages = VexPackages(vex.raw)
         nvd, cve, epss, kev = get_all_data(cachedir, Vex, NVD, CVE, vex.cve, vulncheck)
 
+        # Check if CVSS data exists before determining version
+        has_cvss = has_cvss_data(vex, nvd, cve)
         cvssVersion = determine_cvss_version(vex, nvd, cve)
         
         # Apply CVSS version
@@ -568,7 +616,7 @@ def create_app():
             description = ''
 
         return render_template('cve.html', vex=vex, nvd=nvd, cve=cve, epss=epss,
-                               cvssVersion=cvssVersion, fixdeltas=fixdeltas, beacon=beacon, kev=kev,
+                               cvssVersion=cvssVersion, has_cvss=has_cvss, fixdeltas=fixdeltas, beacon=beacon, kev=kev,
                                fixes=packages.fixes, not_affected=not_affected,
                                wontfix=packages.wontfix, affected=packages.affected,
                                mitigation=mitigation, statement=statement, description=description)
