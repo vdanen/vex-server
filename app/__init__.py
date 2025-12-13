@@ -477,21 +477,31 @@ def create_app():
 
     app = FastAPI()
 
-    # Load config
+    # Load config from file first
     config_path = os.path.join(instance_path, 'config.py')
     config = {}
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
             exec(compile(f.read(), config_path, 'exec'), config)
 
-    # Ensure we have a secret key
-    if 'SECRET_KEY' not in config:
+    # Override config with environment variables if they exist (Heroku support)
+    # Priority: environment variable > config file
+    # SECRET_KEY from environment or config file
+    secret_key = os.environ.get('SECRET_KEY')
+    if not secret_key:
+        secret_key = config.get('SECRET_KEY')
+    if not secret_key:
         raise RuntimeError(
-            'No SECRET_KEY set. Please add SECRET_KEY to instance/config.py'
+            'No SECRET_KEY set. Please set SECRET_KEY environment variable or add SECRET_KEY to instance/config.py'
         )
+    config['SECRET_KEY'] = secret_key
 
-    # enable vulncheck KEV if we have a token
-    vulncheck = config.get('VULNCHECK_API_TOKEN')
+    # VULNCHECK_API_TOKEN from environment or config file
+    vulncheck = os.environ.get('VULNCHECK_API_TOKEN')
+    if not vulncheck:
+        vulncheck = config.get('VULNCHECK_API_TOKEN')
+    if vulncheck:
+        config['VULNCHECK_API_TOKEN'] = vulncheck
 
     cachedir = config.get('CACHE_DIRECTORY', os.path.join(instance_path, 'cache'))
     beacon = config.get('CLOUDFLARE_BEACON', None)
