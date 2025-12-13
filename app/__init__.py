@@ -617,14 +617,31 @@ def create_app():
         # let's make sure that the not affects aren't a list of containers because
         # no one really cares which containers aren't affected and it's just a
         # silly long list anyways
-        not_affected = []
+        not_affected_filtered = []
         for x in packages.not_affected:
             include = True
             for a in x.components:
                 if '@sha256' in a:
                     include=False
             if include:
-                not_affected.append(x)
+                not_affected_filtered.append(x)
+
+        # Group not_affected by product and merge components
+        not_affected_dict = {}
+        for x in not_affected_filtered:
+            if x.product not in not_affected_dict:
+                not_affected_dict[x.product] = []
+            not_affected_dict[x.product].extend(x.components)
+
+        # Convert back to list format with merged components
+        not_affected = []
+        for product, components in not_affected_dict.items():
+            # Create a simple object-like structure for the template
+            class NotAffectedItem:
+                def __init__(self, product, components):
+                    self.product = product
+                    self.components = components
+            not_affected.append(NotAffectedItem(product, components))
 
         # do the markdown transformations here, not as jinja filters
         mitigation = ''

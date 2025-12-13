@@ -230,7 +230,7 @@ h2 {
 .table tbody td {
     padding: 0.75rem 1rem;
     border-color: var(--border-color);
-    vertical-align: middle;
+    vertical-align: top;
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
