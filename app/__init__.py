@@ -16,11 +16,6 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 import httpx
-import requests
-
-# Detect if we're running in WSGI mode (for PythonAnywhere compatibility)
-# WSGI adapters don't handle async well, so we'll use sync requests
-_USE_SYNC_REQUESTS = os.environ.get('USE_SYNC_REQUESTS', 'false').lower() == 'true'
 
 
 def get_cache_path(cachedir, source, cve):
@@ -319,117 +314,6 @@ def fix_delta(release, pkgs):
     return deltas
 
 
-# Sync versions of HTTP functions for WSGI compatibility
-def get_from_nvd_sync(cachedir, NVD, cve_name):
-    """Sync version of get_from_nvd for WSGI compatibility"""
-    cached = get_cached(cachedir,'nvd', cve_name)
-    if cached:
-        return NVD(cached)
-    try:
-        response = requests.get(
-            f'https://services.nvd.nist.gov/rest/json/cves/2.0?cveId={cve_name}',
-            timeout=10
-        )
-        if response.status_code != 200:
-            return NVD(None)
-        nvd_cve = response.json()
-        if len(nvd_cve['vulnerabilities']) > 0 and nvd_cve['vulnerabilities'][0]['cve']['id'] == cve_name:
-            nvd = NVD(nvd_cve)
-            cache(cachedir,'nvd', cve_name, nvd_cve)
-            return nvd
-        return NVD(None)
-    except (requests.exceptions.Timeout, requests.exceptions.RequestException):
-        return NVD(None)
-
-def get_from_cve_sync(cachedir, CVE, cve_name):
-    """Sync version of get_from_cve for WSGI compatibility"""
-    cached = get_cached(cachedir, 'cve', cve_name)
-    if cached:
-        return CVE(cached)
-    try:
-        response = requests.get(
-            f'https://cveawg.mitre.org/api/cve/{cve_name}',
-            timeout=10
-        )
-        if response.status_code != 200:
-            return CVE(None)
-        cve_cve = response.json()
-        if 'cveMetadata' in cve_cve and cve_cve['cveMetadata']['cveId'] == cve_name:
-            cve = CVE(cve_cve)
-            cache(cachedir, 'cve', cve_name, cve_cve)
-            return cve
-        return CVE(None)
-    except (requests.exceptions.Timeout, requests.exceptions.RequestException):
-        return CVE(None)
-
-def get_from_epss_sync(cachedir, cve_name):
-    """Sync version of get_from_epss for WSGI compatibility"""
-    cached = get_cached(cachedir, 'epss', cve_name)
-    if cached:
-        return cached
-    try:
-        response = requests.get(
-            f'https://api.first.org/data/v1/epss?cve={cve_name}',
-            timeout=10
-        )
-        if response.status_code != 200:
-            return None
-        epss_cve = response.json()
-        if len(epss_cve['data']) > 0 and epss_cve['data'][0]['cve'] == cve_name:
-            epss = {
-                'cve': cve_name,
-                'date': epss_cve['data'][0]['date'],
-                'percent': '%.2f' % (float(epss_cve['data'][0]['percentile']) * 100),
-                'score': str(epss_cve['data'][0]['epss']).rstrip('0')
-            }
-            cache(cachedir, 'epss', cve_name, epss)
-            return epss
-        return None
-    except (requests.exceptions.Timeout, requests.exceptions.RequestException):
-        return None
-
-def get_from_redhat_sync(cachedir, Vex, cve_name):
-    """Sync version of get_from_redhat for WSGI compatibility"""
-    cached = get_cached(cachedir,'vex', cve_name)
-    if cached:
-        return Vex(cached)
-    try:
-        year = cve_name[4:8]
-        response = requests.get(
-            f'https://security.access.redhat.com/data/csaf/v2/vex/{year}/{cve_name.lower()}.json',
-            timeout=10
-        )
-        if response.status_code != 200:
-            return None
-        vex_cve = response.json()
-        vex = Vex(vex_cve)
-        cache(cachedir, 'vex', cve_name, vex_cve)
-        return vex
-    except (requests.exceptions.Timeout, requests.exceptions.RequestException):
-        return None
-
-def get_all_data_sync(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
-    """Sync version of get_all_data for WSGI compatibility"""
-    from concurrent.futures import ThreadPoolExecutor
-    
-    # Use ThreadPoolExecutor for concurrent sync requests
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = [
-            executor.submit(get_from_nvd_sync, cachedir, NVD, cve_name),
-            executor.submit(get_from_cve_sync, cachedir, CVE, cve_name),
-            executor.submit(get_from_epss_sync, cachedir, cve_name),
-        ]
-        
-        if vulncheck:
-            futures.append(executor.submit(get_from_kev, cachedir, cve_name, vulncheck))
-        else:
-            futures.append(executor.submit(lambda: None))
-        
-        results = [f.result() for f in futures]
-        nvd, cve, epss, kev = results
-    
-    return nvd, cve, epss, kev
-
 async def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
     """
     Get all external data concurrently from NVD, CVE.org, EPSS and VulnCheck KEV
@@ -445,10 +329,6 @@ async def get_all_data(cachedir, Vex, NVD, CVE, cve_name, vulncheck):
         epss: dict containing EPSS scoring data
         kev: KEV object containing VulnCheck KEV data
     """
-    # Use sync version if in WSGI mode
-    if _USE_SYNC_REQUESTS:
-        return get_all_data_sync(cachedir, Vex, NVD, CVE, cve_name, vulncheck)
-    
     # Create a shared httpx client for async requests
     async with httpx.AsyncClient() as client:
         # Run all async requests concurrently
@@ -696,14 +576,9 @@ def create_app():
             response = templates.TemplateResponse("cve_not_valid.html", {"request": request, "cve": cve}, status_code=404)
             return response
         
-        # Use sync or async based on mode
-        if _USE_SYNC_REQUESTS:
-            # WSGI mode: use sync functions
-            vex = get_from_redhat_sync(cachedir, Vex, cve)
-        else:
-            # ASGI mode: use async functions
-            async with httpx.AsyncClient() as client:
-                vex = await get_from_redhat(cachedir, Vex, cve, client)
+        # Use async httpx client
+        async with httpx.AsyncClient() as client:
+            vex = await get_from_redhat(cachedir, Vex, cve, client)
         
         if not vex:
             response = templates.TemplateResponse("cve_not_found.html", {"request": request, "cve": cve}, status_code=404)

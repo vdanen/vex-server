@@ -1,5 +1,4 @@
-# ASGI entry point for PythonAnywhere's experimental ASGI support
-# Use this instead of wsgi.py if PythonAnywhere supports ASGI
+# ASGI entry point for Heroku and other ASGI-compatible platforms
 
 import sys
 import os
@@ -12,5 +11,4 @@ if project_root not in sys.path:
 from app import create_app
 
 # Create the FastAPI app instance
-# PythonAnywhere's ASGI support expects the app variable
 app = create_app()
