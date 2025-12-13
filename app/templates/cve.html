@@ -212,7 +212,7 @@
 {% for x in fixes %}
   <tr>
     <td>{{ x.product }}</td>
-    <td><ul class="list-unstyled">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td>
+    <td><ul class="component-list">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td>
     <td><a href="https://access.redhat.com/errata/{{ x.id }}">{{ x.id }}</a></td>
     <td>{{ x.date }}</td>
     <td>{{ fixdeltas[x.id] }}d</td>
@@ -230,7 +230,7 @@
   </thead>
   <tbody>
 {% for x in not_affected %}
-  <tr><td>{{ x.product }}</td><td>{{ ', '.join(x.components) }}</td></tr>
+  <tr><td>{{ x.product }}</td><td><ul class="source-package-list">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td></tr>
 {% endfor %}
   </tbody>
 </table>
@@ -244,7 +244,7 @@
   </thead>
   <tbody>
 {% for x in wontfix %}
-  <tr><td>{{ x.product }}</td><td>{{ x.component }}</td><td>{% if x.reason == 'Out of support scope' %}<a href="https://access.redhat.com/support/policy/updates/errata/">{{ x.reason }}</a>{% else %}{{ x.reason }}{% endif %}</td></tr>
+  <tr><td>{{ x.product }}</td><td><span class="source-package">📄 {{ x.component }}</span></td><td>{% if x.reason == 'Out of support scope' %}<a href="https://access.redhat.com/support/policy/updates/errata/">{{ x.reason }}</a>{% else %}{{ x.reason }}{% endif %}</td></tr>
 {% endfor %}
   </tbody>
 </table>
@@ -258,7 +258,7 @@
   </thead>
   <tbody>
 {% for x in affected %}
-  <tr><td>{{ x.product }}</td><td>{{ ', '.join(x.components) }}</td></tr>
+  <tr><td>{{ x.product }}</td><td><ul class="source-package-list">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul></td></tr>
 {% endfor %}
   </tbody>
 </table>
