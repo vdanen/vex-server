@@ -1,5 +1,3 @@
-a2wsgi>=0.8.0
-mangum>=0.17.0
 annotated-types>=0.7.0
 certifi>=2024.8.30
 charset-normalizer>=3.3.2

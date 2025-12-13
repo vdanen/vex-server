@@ -571,19 +571,19 @@ def create_app():
     @app.get("/cve/{cve}", response_class=HTMLResponse)
     async def render_cve(request: Request, cve: str):
         # Note: For production, consider adding response caching with a proper solution
-
+        
         if not validate_cve_id(cve):
             response = templates.TemplateResponse("cve_not_valid.html", {"request": request, "cve": cve}, status_code=404)
             return response
-
-        # Create httpx client for Red Hat request
+        
+        # Use async httpx client
         async with httpx.AsyncClient() as client:
             vex = await get_from_redhat(cachedir, Vex, cve, client)
-
+        
         if not vex:
             response = templates.TemplateResponse("cve_not_found.html", {"request": request, "cve": cve}, status_code=404)
             return response
-
+        
         packages = VexPackages(vex.raw)
         nvd, cve_obj, epss, kev = await get_all_data(cachedir, Vex, NVD, CVE, vex.cve, vulncheck)
 
