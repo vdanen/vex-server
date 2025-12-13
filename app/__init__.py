@@ -643,6 +643,48 @@ def create_app():
                     self.components = components
             not_affected.append(NotAffectedItem(product, components))
 
+        # Group affected packages by product and merge components
+        affected_dict = {}
+        for x in packages.affected:
+            if x.product not in affected_dict:
+                affected_dict[x.product] = []
+            affected_dict[x.product].extend(x.components)
+
+        # Convert back to list format with merged components
+        affected = []
+        for product, components in affected_dict.items():
+            # Create a simple object-like structure for the template
+            class AffectedItem:
+                def __init__(self, product, components):
+                    self.product = product
+                    self.components = components
+            affected.append(AffectedItem(product, components))
+
+        # Group wontfix packages by product and reason, merge components
+        wontfix_dict = {}
+        for x in packages.wontfix:
+            # Use (product, reason) as the key to group by both
+            key = (x.product, x.reason)
+            if key not in wontfix_dict:
+                wontfix_dict[key] = {
+                    'product': x.product,
+                    'reason': x.reason,
+                    'components': []
+                }
+            # wontfix has 'component' (singular), so we add it to the list
+            wontfix_dict[key]['components'].append(x.component)
+
+        # Convert back to list format with merged components
+        wontfix = []
+        for key, data in wontfix_dict.items():
+            # Create a simple object-like structure for the template
+            class WontFixItem:
+                def __init__(self, product, reason, components):
+                    self.product = product
+                    self.reason = reason
+                    self.components = components
+            wontfix.append(WontFixItem(data['product'], data['reason'], data['components']))
+
         # do the markdown transformations here, not as jinja filters
         mitigation = ''
         # we just want the first one
@@ -684,8 +726,8 @@ def create_app():
             "kev": kev,
             "fixes": packages.fixes,
             "not_affected": not_affected,
-            "wontfix": packages.wontfix,
-            "affected": packages.affected,
+            "wontfix": wontfix,
+            "affected": affected,
             "mitigation": mitigation,
             "statement": statement,
             "description": description

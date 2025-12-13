@@ -244,7 +244,7 @@
   </thead>
   <tbody>
 {% for x in wontfix %}
-  <tr><td>{{ x.product }}</td><td><span class="source-package">📄 {{ x.component }}</span></td><td>{% if x.reason == 'Out of support scope' %}<a href="https://access.redhat.com/support/policy/updates/errata/">{{ x.reason }}</a>{% else %}{{ x.reason }}{% endif %}</td></tr>
+  <tr><td>{{ x.product }}</td><td>{% if x.components|length > 1 %}<ul class="source-package-list">{% for c in x.components %}<li>{{ c }}</li>{% endfor %}</ul>{% else %}<span class="source-package">📄 {{ x.components[0] }}</span>{% endif %}</td><td>{% if x.reason == 'Out of support scope' %}<a href="https://access.redhat.com/support/policy/updates/errata/">{{ x.reason }}</a>{% else %}{{ x.reason }}{% endif %}</td></tr>
 {% endfor %}
   </tbody>
 </table>
