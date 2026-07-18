@@ -267,7 +267,8 @@ def get_from_kev(cachedir, cve_name, vulncheck):
     if cached:
         kev = cached
     else:
-        vconfig = vulncheck_sdk.Configuration(host='https://api.vulncheck.com/v3')
+        # Default host is https://api.vulncheck.com; SDK paths already include /v3/...
+        vconfig = vulncheck_sdk.Configuration()
         vconfig.api_key["Bearer"] = vulncheck
 
         kev = None
@@ -289,7 +290,10 @@ def get_from_kev(cachedir, cve_name, vulncheck):
                            'ransomware'     : d.known_ransomware_campaign_use,
                            'date_added'     : date_added}
                     cache(cachedir, 'kev', cve_name, kev)
-            except vulncheck_sdk.exceptions.BadRequestException:
+            except (vulncheck_sdk.exceptions.BadRequestException,
+                    vulncheck_sdk.exceptions.UnauthorizedException,
+                    vulncheck_sdk.exceptions.ApiException):
+                # Missing data, expired/invalid token, or other API errors: treat as no KEV
                 kev = None
 
     return kev
