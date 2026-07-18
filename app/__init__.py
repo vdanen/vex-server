@@ -568,30 +568,32 @@ def create_app():
 
     @app.exception_handler(404)
     async def page_not_found(request: Request, exc):
-        return templates.TemplateResponse("page_not_found.html", {"request": request}, status_code=404)
+        return templates.TemplateResponse(request, "page_not_found.html", status_code=404)
 
     @app.get("/", response_class=HTMLResponse)
     async def home(request: Request):
-        return templates.TemplateResponse("search.html", {"request": request})
+        return templates.TemplateResponse(request, "search.html")
 
     @app.post("/cve")
     async def redirect_cve_post(request: Request, cve: str = Form(...)):
         if not validate_cve_id(cve):
             return templates.TemplateResponse(
-                "cve_not_valid.html", {"request": request, "cve": cve}, status_code=404
+                request, "cve_not_valid.html", {"cve": cve}, status_code=404
             )
         return RedirectResponse(url=f"/cve/{cve}", status_code=status.HTTP_302_FOUND)
 
     @app.get("/cve", response_class=HTMLResponse)
     async def redirect_cve_get(request: Request):
-        return templates.TemplateResponse("cve_not_found.html", {"request": request}, status_code=404)
+        return templates.TemplateResponse(request, "cve_not_found.html", status_code=404)
 
     @app.get("/cve/{cve}", response_class=HTMLResponse)
     async def render_cve(request: Request, cve: str):
         # Note: For production, consider adding response caching with a proper solution
         
         if not validate_cve_id(cve):
-            response = templates.TemplateResponse("cve_not_valid.html", {"request": request, "cve": cve}, status_code=404)
+            response = templates.TemplateResponse(
+                request, "cve_not_valid.html", {"cve": cve}, status_code=404
+            )
             return response
         
         # Use async httpx client
@@ -599,7 +601,9 @@ def create_app():
             vex = await get_from_redhat(cachedir, Vex, cve, client)
         
         if not vex:
-            response = templates.TemplateResponse("cve_not_found.html", {"request": request, "cve": cve}, status_code=404)
+            response = templates.TemplateResponse(
+                request, "cve_not_found.html", {"cve": cve}, status_code=404
+            )
             return response
         
         packages = VexPackages(vex.raw)
@@ -722,7 +726,6 @@ def create_app():
             description = ''
 
         context = {
-            "request": request,
             "vex": vex,
             "nvd": nvd,
             "cve": cve_obj,
@@ -741,6 +744,6 @@ def create_app():
             "description": description
         }
 
-        return templates.TemplateResponse("cve.html", context)
+        return templates.TemplateResponse(request, "cve.html", context)
 
     return app
