@@ -33,12 +33,12 @@ improved performance, security, and modern language features.
 To run the demo server, ensure the configured cache directory in
 `config.py` exists: `mkdir -p cache/{cve,vex,nvd,epss,kev}`
 
-Create a virtual environment: `python -m venv .venv`.  Install the required
-dependencies with `pip install -r requirements.txt`.
+Install [uv](https://docs.astral.sh/uv/), then sync dependencies into a local
+virtual environment: `uv sync`.
 
 Start the demo server by running `sh uvicorn-start.sh`.  This will start
 the uvicorn server listening on the localhost.  Alternatively, you can use
-`uvicorn fastapi_app:app --host 127.0.0.1 --port 5000` directly.
+`uv run uvicorn fastapi_app:app --host 127.0.0.1 --port 5000` directly.
 
 ## Reporting bugs
 Use GitHub issues to file any bugs.  You can also [report security

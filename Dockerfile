@@ -1,6 +1,9 @@
 # Use Python 3.13 for modern features and performance
 FROM python:3.13
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # Set working directory
 WORKDIR /app
 
@@ -8,12 +11,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better layer caching
-COPY requirements.txt .
+# Copy dependency metadata first for better layer caching
+COPY pyproject.toml uv.lock .python-version ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Install dependencies into a project-local venv
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code
 COPY . .
@@ -29,8 +31,8 @@ EXPOSE 8080
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Default command - using uvicorn for FastAPI
 # Uvicorn with multiple workers provides excellent performance
 CMD ["uvicorn", "fastapi_app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "4"]
-
