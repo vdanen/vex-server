@@ -576,6 +576,10 @@ def create_app():
 
     @app.post("/cve")
     async def redirect_cve_post(request: Request, cve: str = Form(...)):
+        if not validate_cve_id(cve):
+            return templates.TemplateResponse(
+                "cve_not_valid.html", {"request": request, "cve": cve}, status_code=404
+            )
         return RedirectResponse(url=f"/cve/{cve}", status_code=status.HTTP_302_FOUND)
 
     @app.get("/cve", response_class=HTMLResponse)
