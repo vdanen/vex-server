@@ -937,16 +937,16 @@ wheels = [
 
 [[package]]
 name = "vex-reader"
-version = "0.9.5.1"
+version = "0.9.5.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pytz" },
     { name = "requests" },
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/06/8d/da1bbc0505c6a8d743fa69aae62ff5c4ff45f3e0ffc502d48b7c08341669/vex_reader-0.9.5.1.tar.gz", hash = "sha256:cd4a0fac9243e470b516e1687c7be0c09dac11351b27f5b3828d1af3b7c84559", size = 55731, upload-time = "2026-07-18T18:20:48.201Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/75/4b/355d7ebf104a26adcab224be7912affce59eaa35e11828cbaaadcf7e8e4a/vex_reader-0.9.5.2.tar.gz", hash = "sha256:6f5350b82c3007ce1b403e1d5ed115453dccad901c9474412745e534ea63843b", size = 56495, upload-time = "2026-07-18T18:55:26.94Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/f0/e892f4c85a314e28a9c353b2ddefdef24e8ad84118a83cea76c63f1b5c82/vex_reader-0.9.5.1-py3-none-any.whl", hash = "sha256:3f641bfa68cc0bab7ea1b763d98c59c29d936f59d4bcfb606c013de43659f1b2", size = 42976, upload-time = "2026-07-18T18:20:47.043Z" },
+    { url = "https://files.pythonhosted.org/packages/23/84/9e8e3b44d3a0e8593835b2551efc2da9e920073517f81afb67977f14db79/vex_reader-0.9.5.2-py3-none-any.whl", hash = "sha256:4620448cabe7bc6d46a4fd57a725f43cb41fa2737f5487010530c48021bce98a", size = 43497, upload-time = "2026-07-18T18:55:25.779Z" },
 ]
 
 [[package]]
@@ -974,7 +974,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "pytz", specifier = ">=2024.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32.0" },
-    { name = "vex-reader", specifier = "==0.9.5.1" },
+    { name = "vex-reader", specifier = "==0.9.5.2" },
     { name = "vulncheck-sdk", specifier = ">=0.0.50" },
 ]
 
