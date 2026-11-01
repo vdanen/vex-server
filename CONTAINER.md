@@ -13,7 +13,7 @@ This guide explains how to run the vex-server application in a Podman container.
 
 1. **Build the container image:**
    ```bash
-   podman build -t vex-server .
+   podman build --file Containerfile -t vex-server .
    ```
 
 2. **Create instance directory:**
@@ -52,6 +52,8 @@ This guide explains how to run the vex-server application in a Podman container.
    ```bash
    podman-compose up -d
    ```
+
+   The compose configuration builds from `Containerfile`.
 
 3. **View logs:**
    ```bash

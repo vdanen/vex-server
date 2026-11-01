@@ -1,5 +1,5 @@
-# Use Python 3.13 for modern features and performance
-FROM python:3.13
+# Pin the Python 3.13 base image by digest for reproducible builds.
+FROM python:3.13@sha256:498320f325ad70645e99ff676347987ca9117728784b8273fb6d25cc735ad9c0
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/

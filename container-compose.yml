@@ -2,7 +2,7 @@ services:
   vex-server:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Containerfile
     container_name: vex-server
     ports:
       - "8080:8080"
